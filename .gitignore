@@ -1,0 +1,33 @@
+# Rust
+/target
+**/*.rs.bk
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Local state (directory-local breadcrumbs/checkpoints/etc.)
+.manager/
+.ops/
+.dashboard/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Release artifacts (don't commit binaries — they belong on Releases)
+*.exe
+*.pdb
+*.dll
+*.msi
+*.zip
+
+# Logs
+*.log
