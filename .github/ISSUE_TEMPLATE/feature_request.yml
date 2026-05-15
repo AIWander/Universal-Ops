@@ -1,0 +1,25 @@
+name: Feature request
+description: Suggest something new for manager / ops / dashboard
+labels: [enhancement]
+body:
+  - type: dropdown
+    id: binary
+    attributes:
+      label: Which binary?
+      options: [manager, ops, dashboard, new binary, cross-cutting]
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered

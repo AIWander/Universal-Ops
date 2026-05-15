@@ -1,0 +1,51 @@
+name: Bug report
+description: Something broken in manager / ops / dashboard
+labels: [bug]
+body:
+  - type: dropdown
+    id: binary
+    attributes:
+      label: Which binary?
+      options: [manager, ops, dashboard, multiple / unsure]
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Steps to reproduce, what you expected, what actually happened.
+    validations:
+      required: true
+  - type: dropdown
+    id: arch
+    attributes:
+      label: Architecture
+      options: [x64, ARM64]
+    validations:
+      required: true
+  - type: dropdown
+    id: host
+    attributes:
+      label: Host app
+      options:
+        - Claude Desktop
+        - Cowork
+        - LM Studio
+        - Claude Code
+        - Other (specify in description)
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Universal-Ops version
+      description: Output of `manager.exe --version` (or whichever binary)
+      placeholder: e.g. 0.1.0-alpha
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Relevant log output from `./.manager/logs/`, `./.ops/logs/`, or `./.dashboard/logs/`
+      render: shell

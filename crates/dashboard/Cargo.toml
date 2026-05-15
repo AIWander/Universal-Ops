@@ -1,0 +1,14 @@
+[package]
+name = "dashboard"
+description = "Universal-Ops dashboard — cross-session breadcrumb viewer and heartbeat tracker"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+readme = "../../README.md"
+
+[[bin]]
+name = "dashboard"
+path = "src/main.rs"
