@@ -60,6 +60,47 @@ Open Claude / ChatGPT / your local LLM and paste:
 
 > Install **AIWander/Universal-Ops** on my Windows machine using the AI install runbook at <https://github.com/AIWander/Universal-Ops#for-ai-assistants>
 
+## Authenticate each backend (one-time setup)
+
+Manager doesn't store API keys or OAuth tokens itself — **each delegated coding agent owns its own credentials**. Before manager can dispatch to a backend, you authenticate that backend once via its own CLI. Run these once on your machine; manager picks up the authenticated sessions automatically.
+
+### Codex (ChatGPT-backed)
+
+```powershell
+# Install Codex CLI first: https://github.com/openai/codex
+codex login
+```
+
+Codex starts a local OAuth callback server (default `http://localhost:1455`) and opens your browser to `auth.openai.com`. Sign in with your ChatGPT account, pick a workspace if you have multiple, click **Continue** on the consent page, close the browser tab. The terminal will print `Successfully logged in`. Subsequent `codex` invocations (including those manager makes) reuse the session.
+
+### Claude Code
+
+```powershell
+# Install Claude Code first: https://github.com/anthropics/claude-code
+claude --setup
+```
+
+OAuth flow in browser → sign in with your Anthropic account → done. Claude Code is now ready to be invoked as a subprocess by manager.
+
+### Gemini CLI
+
+```powershell
+# Install Gemini CLI first: https://github.com/google-gemini/gemini-cli
+gemini auth login
+```
+
+### LM Studio (local LLM, beta)
+
+Open LM Studio → **Local Server** in the sidebar → load a model → **Start Server**. Manager auto-detects an LM Studio server on `http://localhost:1234`. No auth required for local-only models. *Note:* model behavior varies — some local LLMs handle tool calls cleanly, others don't. Manager flags this when it detects an LM Studio backend.
+
+### Verify which backends manager can reach
+
+```powershell
+C:\tools\universal-ops\manager.exe backends list
+```
+
+Manager prints the status of each known backend (authenticated / not configured / unreachable). If a backend isn't authenticated, manager skips it when picking the "smartest available." Re-run any of the login commands above to refresh credentials.
+
 ## For AI Assistants
 
 If you're an AI installing this for a user, run these steps in order:
