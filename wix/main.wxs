@@ -58,7 +58,7 @@
                               Source="$(var.CargoTargetBinDir)\dashboard.exe"
                               KeyPath="yes"/>
                     </Component>
-                    <Component Id="UniversalOpsPath" Guid="*" Win64="$(var.Win64)" KeyPath="yes">
+                    <Component Id="UniversalOpsPath" Guid="C99B8CAD-C118-44E3-8F1E-0B006A0B3CCF" Win64="$(var.Win64)" KeyPath="yes">
                         <Environment Id="UniversalOpsPathEnv"
                                      Name="PATH"
                                      Value="[APPLICATIONFOLDER]"
