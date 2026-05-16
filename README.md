@@ -152,6 +152,32 @@ Start-Process http://127.0.0.1:9999
 
 "Universal-Ops is installed. Manager, ops, and dashboard registered with: $($hosts -join ', '). Dashboard at http://127.0.0.1:9999. Restart those host apps now."
 
+## Manual delegation (until v1 ships)
+
+Universal-Ops v0.1.0-alpha is **scaffold-only** — `manager.exe` doesn't yet pick backends or dispatch tasks, `ops.exe` doesn't yet expose its tool surface, `dashboard.exe` doesn't yet serve UI. While we build the real implementation, here's how to delegate manually with the underlying CLIs you've already authenticated:
+
+1. **Authenticate each backend** you want available (see [Authenticate each backend](#authenticate-each-backend-one-time-setup) above)
+2. **Pick a backend** based on your task — Codex for ChatGPT-style coding, Claude Code for Anthropic, Gemini for Google, LM Studio for offline
+3. **Compose your prompt** — describe the task, paste relevant code, point at file paths
+4. **Run the CLI directly**:
+   ```powershell
+   codex "Implement a Rust function that does X..."
+   # or: claude "Refactor src/foo.rs to ..."
+   # or: gemini "Read src/lib.rs and add tests for ..."
+   ```
+5. **Review the output** before letting any agent run commands or modify files
+
+When v1 ships, `manager.exe dispatch "your task"` will:
+- Auto-detect which backends are authenticated and reachable
+- Pick the smartest one for the task type (or let you `--backend codex` etc.)
+- Stream output back to your AI client via MCP
+- Track the operation as a breadcrumb for the dashboard
+- Roll up child-agent progress under the parent session
+
+The token storage stays exactly the same — **manager never owns credentials**, the delegated CLIs do. v1 is purely additive UX.
+
+Implementation iterates here in the open. PRs welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## Coexists with the legacy AIWander/ops
 
 Universal-Ops is the **next-generation** manager+ops+dashboard bundle. The existing [`AIWander/ops`](https://github.com/AIWander/ops) repo (single-binary ops server, no manager/dashboard) keeps working — Universal-Ops registers under different MCP keys (`universal-manager` / `universal-ops` / `universal-dashboard`) so both stacks can run side-by-side.

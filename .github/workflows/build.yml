@@ -30,6 +30,14 @@ jobs:
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
 
+      - name: Install WiX Toolset (for MSI build, tag-only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        run: |
+          choco install wixtoolset --no-progress -y
+          $wixBin = Join-Path $env:WIX 'bin'
+          echo $wixBin | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+
       - name: Build (release)
         run: cargo build --release --workspace --target ${{ matrix.target.triple }}
 
@@ -52,6 +60,25 @@ jobs:
           Compress-Archive -Path "$stage/*" -DestinationPath "$repo-windows-$arch.zip" -Force
           Get-ChildItem "$repo-windows-$arch.zip" | Format-List
 
+      - name: Build MSI installer (tag-only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart("v") -replace "-.+",""
+          $arch = "${{ matrix.target.arch }}"
+          $repo = "${{ github.event.repository.name }}".ToLower()
+          New-Item -ItemType Directory -Force -Path "target/wix" | Out-Null
+          & candle.exe wix/main.wxs `
+            -dCargoTargetBinDir="target/${{ matrix.target.triple }}/release" `
+            -dPlatform="$arch" `
+            -dPlatformProgramFilesFolder="ProgramFiles64Folder" `
+            -dWin64="yes" `
+            -dVersion="$version" `
+            -arch $arch `
+            -out wix/main.wixobj
+          & light.exe wix/main.wixobj -out "target/wix/$repo-windows-$arch.msi"
+          Get-ChildItem "target/wix/*.msi" | Format-List
+
       - name: Upload artifact
         if: hashFiles('*.zip') != ''
         uses: actions/upload-artifact@v4
@@ -60,7 +87,9 @@ jobs:
           path: '*.zip'
 
       - name: Attach to release
-        if: startsWith(github.ref, 'refs/tags/v') && hashFiles('*.zip') != ''
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: '*.zip'
+          files: |
+            *.zip
+            target/wix/*.msi

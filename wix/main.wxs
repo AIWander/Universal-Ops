@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="windows-1252"?>
+<!--
+  Universal-Ops WiX installer template — bundles manager.exe + ops.exe + dashboard.exe in one MSI.
+  Built by cargo-wix on tag-push via .github/workflows/build.yml.
+  UpgradeCode + per-binary Component GUIDs are stable across versions for proper upgrade tracking.
+-->
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+    <Product Id="*"
+             Name="Universal-Ops"
+             UpgradeCode="870956E7-785E-4A5D-9E15-04D0625A793B"
+             Manufacturer="AIWander"
+             Language="1033"
+             Codepage="1252"
+             Version="$(var.Version)">
+
+        <Package Id="*"
+                 Keywords="Installer"
+                 Description="Universal-Ops — Operations Locally: manager + ops + dashboard for any AI coding agent"
+                 Manufacturer="AIWander"
+                 InstallerVersion="450"
+                 Languages="1033"
+                 Compressed="yes"
+                 InstallScope="perMachine"
+                 SummaryCodepage="1252"
+                 Platform="$(var.Platform)"/>
+
+        <MajorUpgrade
+            Schedule="afterInstallInitialize"
+            DowngradeErrorMessage="A newer version of Universal-Ops is already installed. Setup will now exit."/>
+
+        <Media Id="1" Cabinet="media1.cab" EmbedCab="yes" DiskPrompt="CD-ROM #1"/>
+        <Property Id="DiskPrompt" Value="Universal-Ops Installation"/>
+
+        <Directory Id="TARGETDIR" Name="SourceDir">
+            <Directory Id="$(var.PlatformProgramFilesFolder)" Name="PFiles">
+                <Directory Id="APPLICATIONFOLDER" Name="Universal-Ops">
+                    <Component Id="License" Guid="*" Win64="$(var.Win64)">
+                        <File Id="LicenseFile" Name="LICENSE" DiskId="1" Source="LICENSE" KeyPath="yes"/>
+                    </Component>
+                    <Component Id="Manager" Guid="D8A23FF4-C47A-49E4-862A-7A305AB4F682" Win64="$(var.Win64)">
+                        <File Id="ManagerExe"
+                              Name="manager.exe"
+                              DiskId="1"
+                              Source="$(var.CargoTargetBinDir)\manager.exe"
+                              KeyPath="yes"/>
+                    </Component>
+                    <Component Id="Ops" Guid="E793B806-0D00-4FE5-BC32-976EC653D2B0" Win64="$(var.Win64)">
+                        <File Id="OpsExe"
+                              Name="ops.exe"
+                              DiskId="1"
+                              Source="$(var.CargoTargetBinDir)\ops.exe"
+                              KeyPath="yes"/>
+                    </Component>
+                    <Component Id="Dashboard" Guid="1F88AD8E-C8FE-43E9-97B0-634FE4DB45AE" Win64="$(var.Win64)">
+                        <File Id="DashboardExe"
+                              Name="dashboard.exe"
+                              DiskId="1"
+                              Source="$(var.CargoTargetBinDir)\dashboard.exe"
+                              KeyPath="yes"/>
+                    </Component>
+                    <Component Id="UniversalOpsPath" Guid="*" Win64="$(var.Win64)" KeyPath="yes">
+                        <Environment Id="UniversalOpsPathEnv"
+                                     Name="PATH"
+                                     Value="[APPLICATIONFOLDER]"
+                                     Permanent="no"
+                                     Part="last"
+                                     Action="set"
+                                     System="yes"/>
+                    </Component>
+                </Directory>
+            </Directory>
+        </Directory>
+
+        <Feature Id="MainProgram"
+                 Title="Universal-Ops (all binaries)"
+                 Description="manager.exe + ops.exe + dashboard.exe"
+                 Level="1"
+                 ConfigurableDirectory="APPLICATIONFOLDER"
+                 AllowAdvertise="no"
+                 Display="expand"
+                 Absent="disallow">
+            <ComponentRef Id="License"/>
+            <Feature Id="ManagerFeature" Title="Manager" Description="Orchestrator that delegates to coding agents" Level="1">
+                <ComponentRef Id="Manager"/>
+            </Feature>
+            <Feature Id="OpsFeature" Title="Ops" Description="Local execution hands for delegated agents" Level="1">
+                <ComponentRef Id="Ops"/>
+            </Feature>
+            <Feature Id="DashboardFeature" Title="Dashboard" Description="Cross-session breadcrumb viewer + heartbeat tracker" Level="1">
+                <ComponentRef Id="Dashboard"/>
+            </Feature>
+            <Feature Id="Path" Title="Add to PATH" Description="Add Universal-Ops binaries to system PATH" Level="1">
+                <ComponentRef Id="UniversalOpsPath"/>
+            </Feature>
+        </Feature>
+
+        <Property Id="ARPHELPLINK" Value="https://github.com/AIWander/Universal-Ops/issues"/>
+        <Property Id="ARPURLINFOABOUT" Value="https://github.com/AIWander/Universal-Ops"/>
+        <Property Id="ARPURLUPDATEINFO" Value="https://github.com/AIWander/Universal-Ops/releases"/>
+
+        <SetProperty Id="ARPINSTALLLOCATION" Value="[APPLICATIONFOLDER]" After="CostFinalize"/>
+    </Product>
+</Wix>
