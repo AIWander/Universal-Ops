@@ -8,6 +8,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: write   # needed for softprops/action-gh-release to create the Release on tag push
+
 jobs:
   build:
     name: Build ${{ matrix.target.arch }}
