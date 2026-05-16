@@ -38,7 +38,16 @@ jobs:
         shell: pwsh
         run: |
           choco install wixtoolset --no-progress -y
-          $wixBin = Join-Path $env:WIX 'bin'
+          # Refresh env so $env:WIX picks up the install (choco doesn't propagate to current shell by default).
+          Import-Module "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1" -ErrorAction SilentlyContinue
+          if (Get-Command refreshenv -ErrorAction SilentlyContinue) { refreshenv }
+          $wixBin = if ($env:WIX) { Join-Path $env:WIX 'bin' } else { $null }
+          if (-not $wixBin -or -not (Test-Path $wixBin)) {
+            # Fallback to known WiX 3.14 install path (ARM64 runner, where env may not refresh)
+            $wixBin = "${env:ProgramFiles(x86)}\WiX Toolset v3.14\bin"
+          }
+          if (-not (Test-Path $wixBin)) { throw "Could not locate WiX bin directory" }
+          Write-Host "WiX bin: $wixBin"
           echo $wixBin | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
 
       - name: Build (release)
