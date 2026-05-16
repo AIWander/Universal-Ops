@@ -14,5 +14,20 @@ name = "dashboard"
 path = "src/main.rs"
 
 [dependencies]
+# Shared install/uninstall subcommand logic (added 2026-05-15 for hybrid v1.1.1).
 install-common = { path = "../install-common" }
-anyhow = "1"
+anyhow = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+axum = { workspace = true }
+tower-http = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+# 2026-05-15 (Phase 3b blocker 1): read tasks/{id}/state.json directly from disk
+# instead of needing manager IPC. Same path resolver as manager keeps them in sync.
+cpc-paths = { workspace = true }
+serde_yaml = { workspace = true }
+chrono = { workspace = true }
+# Phase 3c: add reqwest for talking to manager's IPC endpoint for WRITE handlers.
+# reqwest = { workspace = true }

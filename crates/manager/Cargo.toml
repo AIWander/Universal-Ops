@@ -1,6 +1,6 @@
 [package]
 name = "manager"
-description = "Universal-Ops manager — orchestrates delegation to coding agents"
+description = "Universal-Ops manager — orchestrates delegation to coding agents (ported from manager-mcp v1.4.4)"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
@@ -14,5 +14,27 @@ name = "manager"
 path = "src/main.rs"
 
 [dependencies]
+# Shared install/uninstall subcommand logic (added 2026-05-15 for hybrid v1.1.1).
 install-common = { path = "../install-common" }
-anyhow = "1"
+anyhow = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+reqwest = { workspace = true }
+axum = { workspace = true }
+tower-http = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+once_cell = { workspace = true }
+regex = { workspace = true }
+sysinfo = { workspace = true }
+rand = { workspace = true }
+# Pulled in from v1.4.4 commit 0ccb053 — provides cpc_paths::volumes_path / data_path.
+# 2026-05-15: hoisted to workspace deps so dashboard crate can share. AIWander/cpc-paths v0.1.1.
+cpc-paths = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }

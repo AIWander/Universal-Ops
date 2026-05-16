@@ -8,12 +8,56 @@ members = [
 ]
 
 [workspace.package]
-version = "0.1.0-alpha"
+version = "1.1.1"
 edition = "2021"
 authors = ["Joseph Wander <josephwander@gmail.com>"]
 license = "MIT"
 repository = "https://github.com/AIWander/Universal-Ops"
 rust-version = "1.75"
+
+# Hoisted dependencies — pinned at workspace level so all crates resolve
+# to the same versions. Per-crate Cargo.toml files declare `dep.workspace = true`
+# (or `{ workspace = true, features = [...] }` to add crate-specific features).
+[workspace.dependencies]
+# Async runtime + JSON
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+
+# Time + IDs
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1", features = ["v4"] }
+
+# HTTP (manager → backends, dashboard → manager IPC in 3b)
+reqwest = { version = "0.12", features = ["json"] }
+axum = "0.7"
+tower-http = { version = "0.5", features = ["cors"] }
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Utilities used by >=2 crates
+once_cell = "1.18"
+regex = "1"
+
+# Manager-specific (kept at workspace level for future cross-use)
+sysinfo = "0.32"
+rand = "0.8"
+
+# Ops + install-common
+anyhow = "1"
+arboard = "3.2"
+rusqlite = { version = "0.39", features = ["bundled"] }
+dirs = "5"
+
+# Path discovery (manager + dashboard both resolve tasks/{id}/state.json via this).
+# v0.1.3 includes cpc_paths::process::ensure_kill_on_parent_death required by ops.
+cpc-paths = { git = "https://github.com/AIWander/cpc-paths", tag = "v0.1.3" }
+
+# Dev deps
+tempfile = "3"
 
 [profile.release]
 opt-level = 3

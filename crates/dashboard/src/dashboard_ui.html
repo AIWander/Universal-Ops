@@ -1,0 +1,1309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CPC Dashboard</title>
+<style>
+:root {
+  --bg-primary: #0f1117;
+  --bg-card: #1a1d27;
+  --bg-card-hover: #242836;
+  --text-primary: #e4e4e7;
+  --text-secondary: #9ca3af;
+  --accent-green: #22c55e;
+  --accent-blue: #3b82f6;
+  --accent-red: #ef4444;
+  --accent-amber: #f59e0b;
+  --accent-grey: #6b7280;
+  --accent-purple: #a855f7;
+  --border: #2d3140;
+  --font: 'Segoe UI', system-ui, sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg-primary); color: var(--text-primary); font-family: var(--font); font-size: 13px; line-height: 1.5; padding-bottom: 168px; }
+a { color: var(--accent-blue); text-decoration: none; }
+
+/* Layout */
+#app { display: flex; flex-direction: column; min-height: 100vh; }
+#health-strip { background: var(--bg-card); border-bottom: 1px solid var(--border); padding: 8px 16px; display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+#toolbar { background: var(--bg-card); border-bottom: 1px solid var(--border); padding: 6px 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+#main { flex: 1; padding: 12px 16px; display: flex; flex-direction: column; gap: 12px; }
+#panels-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+#services-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+#autonomous-row { }
+#action-bar { background: var(--bg-card); border-top: 1px solid var(--border); padding: 8px 16px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+/* Health strip */
+.server-pill { display: flex; align-items: center; gap: 5px; font-size: 12px; }
+.server-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.dot-online { background: var(--accent-green); box-shadow: 0 0 6px var(--accent-green); }
+.dot-offline { background: var(--accent-grey); }
+.dot-warn { background: var(--accent-amber); }
+.server-name { color: var(--text-primary); font-weight: 500; }
+.server-ver { color: var(--text-secondary); font-size: 11px; }
+.server-age { color: var(--text-secondary); font-size: 11px; }
+
+/* Toolbar */
+.tab-group { display: flex; gap: 2px; background: var(--bg-primary); border-radius: 6px; padding: 2px; }
+.tab { padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; color: var(--text-secondary); border: none; background: transparent; }
+.tab.active { background: var(--bg-card-hover); color: var(--text-primary); }
+.filter-group { display: flex; gap: 6px; margin-left: auto; align-items: center; }
+.chip { padding: 3px 10px; border-radius: 12px; border: 1px solid var(--border); background: transparent; color: var(--text-secondary); cursor: pointer; font-size: 11px; }
+.chip.active { border-color: var(--accent-blue); color: var(--accent-blue); background: rgba(59,130,246,0.1); }
+.chip.running { border-color: var(--accent-green); }
+.chip.running.active { color: var(--accent-green); background: rgba(34,197,94,0.1); border-color: var(--accent-green); }
+.chip.failed { border-color: var(--accent-red); }
+.chip.failed.active { color: var(--accent-red); background: rgba(239,68,68,0.1); border-color: var(--accent-red); }
+.chip.orphaned { border-color: var(--accent-amber); }
+.chip.orphaned.active { color: var(--accent-amber); background: rgba(245,158,11,0.1); }
+select.filter-select { background: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border); border-radius: 4px; padding: 3px 6px; font-size: 11px; }
+.group-toggle { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text-secondary); cursor: pointer; }
+.group-toggle input { cursor: pointer; }
+
+/* Panel */
+.panel { background: var(--bg-card); border-radius: 8px; border: 1px solid var(--border); overflow: hidden; }
+.panel-header { padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-secondary); display: flex; align-items: center; justify-content: space-between; }
+.panel-body { padding: 8px; max-height: 340px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+.panel-body::-webkit-scrollbar { width: 4px; }
+.panel-body::-webkit-scrollbar-track { background: transparent; }
+.panel-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* Session card */
+.session-card { background: var(--bg-primary); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; cursor: pointer; transition: border-color 0.15s; user-select: none; }
+.session-card:hover { border-color: var(--accent-blue); background: var(--bg-card-hover); }
+.session-card.stalled { border-color: var(--accent-amber); }
+.session-card.orphaned-card { border-color: var(--accent-amber); }
+.session-card.faded { opacity: 0.45; }
+.session-card.collapsed { display: none; }
+.card-row { display: flex; align-items: center; gap: 6px; }
+.card-title { flex: 1; font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.badge { padding: 1px 6px; border-radius: 10px; font-size: 10px; font-weight: 600; }
+.badge-running { background: rgba(34,197,94,0.15); color: var(--accent-green); }
+.badge-queued { background: rgba(107,114,128,0.15); color: var(--accent-grey); }
+.badge-done { background: rgba(59,130,246,0.15); color: var(--accent-blue); }
+.badge-failed { background: rgba(239,68,68,0.15); color: var(--accent-red); }
+.badge-orphaned { background: rgba(245,158,11,0.15); color: var(--accent-amber); }
+.badge-cancelled { background: rgba(107,114,128,0.15); color: var(--accent-grey); }
+.badge-claude { background: rgba(59,130,246,0.15); color: var(--accent-blue); }
+.badge-codex { background: rgba(34,197,94,0.15); color: var(--accent-green); }
+.badge-gemini { background: rgba(168,85,247,0.15); color: var(--accent-purple); }
+.badge-gpt { background: rgba(245,158,11,0.15); color: var(--accent-amber); }
+.card-meta { font-size: 11px; color: var(--text-secondary); margin-top: 3px; }
+.elapsed { font-variant-numeric: tabular-nums; }
+.card-prompt { font-size: 11px; color: var(--text-secondary); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.card-detail { font-size: 11px; color: var(--text-secondary); margin-top: 4px; display: none; }
+.session-card.expanded .card-detail { display: block; }
+
+/* Breadcrumb card */
+.bc-card { background: var(--bg-primary); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; cursor: pointer; transition: border-color 0.2s; }
+.bc-card:hover { border-color: var(--accent-blue); }
+.bc-card.stale { border-color: var(--accent-amber); box-shadow: 0 0 8px rgba(245,158,11,0.15); }
+.bc-progress-bar { height: 5px; background: var(--border); border-radius: 3px; margin: 5px 0; overflow: hidden; }
+.bc-progress-fill { height: 100%; background: var(--accent-green); border-radius: 3px; transition: width 0.3s; }
+.bc-server-tag { display: inline-block; font-size: 9px; padding: 1px 5px; border-radius: 3px; font-weight: 600; margin-right: 4px; }
+.bc-server-tag.local { background: rgba(59,130,246,0.15); color: var(--accent-blue); }
+.bc-server-tag.autonomous { background: rgba(168,85,247,0.15); color: #a855f7; }
+.bc-server-tag.cpc-state { background: rgba(34,197,94,0.15); color: var(--accent-green); }
+.bc-steps-detail { display: none; margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border); font-size: 10px; }
+.bc-card.expanded .bc-steps-detail { display: block; }
+.bc-step-row { display: flex; align-items: center; gap: 4px; padding: 2px 0; color: var(--text-secondary); }
+.bc-step-row.done { color: var(--accent-green); }
+.bc-step-row.current { color: var(--accent-blue); font-weight: 600; }
+.bc-owner-tag { font-size: 9px; color: var(--text-secondary); opacity: 0.7; }
+.bc-progress-label { font-size: 10px; color: var(--text-secondary); margin-top: 2px; }
+.bc-meta { font-size: 11px; color: var(--text-secondary); display: flex; gap: 10px; flex-wrap: wrap; margin-top: 3px; }
+
+/* Scorecard */
+.scorecard { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; }
+.scorecard-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin-bottom: 8px; }
+.scorecard-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+.score-item { background: var(--bg-primary); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; }
+.score-label { font-size: 10px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em; }
+.score-value { font-size: 18px; font-weight: 700; color: var(--text-primary); }
+.score-value.warn { color: var(--accent-amber); }
+.score-value.good { color: var(--accent-green); }
+
+/* Service panels */
+.service-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; padding: 8px 12px; }
+.svc-label { font-size: 11px; color: var(--text-secondary); }
+.svc-value { font-size: 11px; color: var(--text-primary); text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.svc-url { font-size: 11px; max-width: 160px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
+
+/* Action bar */
+.action-btn { padding: 5px 12px; background: var(--bg-card-hover); border: 1px solid var(--border); color: var(--text-primary); border-radius: 5px; cursor: pointer; font-size: 12px; transition: border-color 0.15s; }
+.action-btn:hover { border-color: var(--accent-blue); color: var(--accent-blue); }
+.action-btn.danger:hover { border-color: var(--accent-red); color: var(--accent-red); }
+.path-copyable { font-size: 11px; color: var(--text-secondary); background: var(--bg-primary); padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); cursor: pointer; font-family: monospace; }
+.path-copyable:hover { border-color: var(--accent-blue); }
+.toast { position: fixed; bottom: 20px; right: 20px; background: var(--bg-card); border: 1px solid var(--accent-green); color: var(--text-primary); padding: 8px 14px; border-radius: 6px; font-size: 12px; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 9999; }
+.toast.show { opacity: 1; }
+.project-header { font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.08em; padding: 4px 2px 2px; border-bottom: 1px solid var(--border); margin-bottom: 2px; }
+
+/* Empty state */
+.empty-state { text-align: center; padding: 24px; color: var(--text-secondary); font-size: 12px; }
+
+/* Offline banner */
+.offline-card { text-align: center; padding: 16px; color: var(--accent-grey); font-size: 12px; border: 1px dashed var(--border); border-radius: 6px; margin: 4px; }
+
+/* View modes */
+body.view-ops #services-row, body.view-ops #autonomous-row { display: block; }
+body.view-summary #panels-row, body.view-summary #services-row, body.view-summary #autonomous-row { display: none; }
+
+/* Partial install — collapse unreachable optional servers */
+#partial-install-footer { display: none; padding: 6px 16px; font-size: 11px; color: var(--text-secondary); text-align: center; }
+#partial-install-footer.visible { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.show-all-link { color: var(--accent-blue); cursor: pointer; }
+.show-all-link:hover { text-decoration: underline; }
+/* Expand panel bodies when service panels are hidden */
+body.no-services .panel-body { max-height: 520px; }
+
+/* ============================================================
+   v1.3 NEW: Bottom strip
+   ============================================================ */
+.bottom-strip {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: 160px;
+  background: var(--bg-card);
+  border-top: 2px solid var(--border);
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  z-index: 100;
+}
+.zone-card {
+  padding: 8px 12px;
+  border-right: 1px solid var(--border);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.zone-card:last-child { border-right: none; }
+.zone-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-secondary);
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1px;
+  flex-shrink: 0;
+}
+.zone-body { flex: 1; overflow-y: auto; font-size: 11px; display: flex; flex-direction: column; gap: 3px; }
+.zone-body::-webkit-scrollbar { width: 3px; }
+.zone-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+
+/* Detail takeover -- click card, right panel swaps content */
+.detail-view { display: flex; flex-direction: column; gap: 10px; padding: 4px 2px; }
+.detail-view .detail-body {
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
+  padding: 6px 2px;
+}
+.detail-view .detail-meta {
+  font-size: 11px;
+  color: var(--text-secondary);
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.panel-header .close-detail-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-left: 8px;
+}
+.panel-header .close-detail-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--accent-blue);
+}
+.session-card.selected { border-color: var(--accent-blue); background: var(--bg-card-hover); }
+
+/* Tool calls feed */
+.tool-calls-feed { display: flex; flex-direction: column; gap: 2px; }
+.tc-row { display: flex; align-items: center; gap: 6px; padding: 3px 0; border-bottom: 1px solid rgba(45,49,64,0.5); }
+.tc-row:last-child { border-bottom: none; }
+.tc-name { flex: 1; color: var(--text-primary); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tc-meta { color: var(--text-secondary); font-size: 10px; flex-shrink: 0; }
+.tc-dur { color: var(--accent-green); font-size: 10px; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+
+/* Step progress */
+.step-progress { margin-top: 4px; }
+.step-progress-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.step-progress-fill { height: 100%; background: var(--accent-blue); border-radius: 2px; transition: width 0.3s; }
+.step-progress-label { font-size: 10px; color: var(--text-secondary); margin-top: 2px; }
+
+/* Session label chip */
+.session-label-chip {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  margin-bottom: 3px;
+  border: 1px solid transparent;
+}
+
+/* Live activity table */
+.live-activity-table { width: 100%; border-collapse: collapse; font-size: 10px; margin-top: 6px; }
+.live-activity-table th { color: var(--text-secondary); text-align: left; padding: 2px 4px; font-weight: 600; border-bottom: 1px solid var(--border); }
+.live-activity-table td { color: var(--text-primary); padding: 2px 4px; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.live-activity-table tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+
+/* Stalled status */
+@keyframes stall-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,0.5); }
+  50%       { box-shadow: 0 0 0 5px rgba(245,158,11,0); }
+}
+.status-stalled {
+  border-color: var(--accent-amber) !important;
+  animation: stall-pulse 2s infinite;
+}
+
+/* Current tool call pulse */
+@keyframes tc-pulse {
+  0%, 100% { border-color: rgba(59,130,246,0.6); background: rgba(59,130,246,0.06); }
+  50%      { border-color: rgba(59,130,246,0.25); background: rgba(59,130,246,0.02); }
+}
+.tc-row.tc-current {
+  border: 1px solid rgba(59,130,246,0.5);
+  border-radius: 4px;
+  padding: 3px 4px;
+  animation: tc-pulse 2s ease-in-out infinite;
+}
+</style>
+</head>
+<body class="view-full">
+<div id="app">
+
+<!-- Health Strip -->
+<div id="health-strip">
+  <strong style="font-size:12px;color:var(--text-secondary);margin-right:4px;">CPC</strong>
+  <div id="strip-manager" class="server-pill"><span class="server-dot dot-offline"></span><span class="server-name">manager</span><span class="server-ver"></span><span class="server-age"></span></div>
+  <div id="strip-local" class="server-pill"><span class="server-dot dot-offline"></span><span class="server-name">local</span><span class="server-ver"></span><span class="server-age"></span></div>
+  <div id="strip-hands" class="server-pill"><span class="server-dot dot-offline"></span><span class="server-name">hands</span><span class="server-ver"></span><span class="server-age"></span></div>
+  <div id="strip-workflow" class="server-pill"><span class="server-dot dot-offline"></span><span class="server-name">workflow</span><span class="server-ver"></span><span class="server-age"></span></div>
+  <div id="strip-autonomous" class="server-pill"><span class="server-dot dot-offline"></span><span class="server-name">autonomous</span><span class="server-ver"></span><span class="server-age"></span></div>
+  <div id="strip-voice" class="server-pill"><span class="server-dot dot-offline"></span><span class="server-name">voice</span><span class="server-ver"></span><span class="server-age"></span></div>
+  <span id="last-refresh" style="margin-left:auto;font-size:11px;color:var(--text-secondary)"></span>
+</div>
+
+<!-- Toolbar -->
+<div id="toolbar">
+  <div class="tab-group">
+    <button class="tab active" onclick="setView('full')">Full</button>
+    <button class="tab" onclick="setView('ops')">Ops</button>
+    <button class="tab" onclick="setView('summary')">News</button>
+  </div>
+  <label class="group-toggle"><input type="checkbox" id="groupByProject" onchange="renderAll()"> Group by project</label>
+  <div class="filter-group">
+    <span style="font-size:11px;color:var(--text-secondary)">Filter:</span>
+    <button class="chip" id="chip-all" onclick="setStatusFilter('all')">All</button>
+    <button class="chip running" id="chip-running" onclick="setStatusFilter('running')">● Running</button>
+    <button class="chip" id="chip-queued" onclick="setStatusFilter('queued')">○ Queued</button>
+    <button class="chip" id="chip-done" onclick="setStatusFilter('done')">✓ Done</button>
+    <button class="chip failed" id="chip-failed" onclick="setStatusFilter('failed')">✗ Failed</button>
+    <button class="chip orphaned" id="chip-orphaned" onclick="setStatusFilter('orphaned')">⚠ Orphaned</button>
+    <select class="filter-select" id="backendFilter" onchange="renderAll()">
+      <option value="all">All backends</option>
+      <option value="claude_code">claude_code</option>
+      <option value="codex">codex</option>
+      <option value="gemini">gemini</option>
+      <option value="gpt">gpt</option>
+    </select>
+  </div>
+</div>
+
+<!-- Main -->
+<div id="main">
+
+  <!-- Sessions + Tool Calls Feed -->
+  <div id="panels-row">
+    <div class="panel">
+      <div class="panel-header">
+        <span>Sessions</span>
+        <span id="session-count" style="font-size:10px;color:var(--text-secondary)"></span>
+      </div>
+      <div class="panel-body" id="sessions-panel"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-header">
+        <span id="detail-panel-title">Session Detail</span>
+        <span id="tc-count" style="font-size:10px;color:var(--text-secondary)"></span>
+      </div>
+      <div class="panel-body" id="tool-calls-panel"><div class="empty-state">Click a session or task to see full details</div></div>
+    </div>
+  </div>
+
+  <!-- Scorecard -->
+  <div class="scorecard" id="scorecard-panel">
+    <div class="scorecard-title">Today's Scorecard</div>
+    <div class="scorecard-grid" id="scorecard-grid"></div>
+  </div>
+
+  <!-- Hands + Workflow -->
+  <div id="services-row">
+    <div class="panel" id="hands-panel">
+      <div class="panel-header"><span>🌐 Hands</span><span id="hands-age" style="font-size:10px;color:var(--text-secondary)"></span></div>
+      <div class="service-grid" id="hands-grid"></div>
+    </div>
+    <div class="panel" id="workflow-panel">
+      <div class="panel-header"><span>🔑 Workflow</span><span id="workflow-age" style="font-size:10px;color:var(--text-secondary)"></span></div>
+      <div class="service-grid" id="workflow-grid"></div>
+    </div>
+  </div>
+
+  <!-- Autonomous -->
+  <div class="panel" id="autonomous-panel" style="display:none">
+    <div class="panel-header"><span>📚 Autonomous</span><span id="autonomous-age" style="font-size:10px;color:var(--text-secondary)"></span></div>
+    <div class="service-grid" id="autonomous-grid"></div>
+  </div>
+
+  <!-- Partial install footer -->
+  <div id="partial-install-footer">
+    <span id="partial-install-msg"></span>
+    <a class="show-all-link" onclick="showAllServers()">Show all</a>
+  </div>
+
+</div><!-- /main -->
+
+<!-- Action bar -->
+<div id="action-bar">
+  <button class="action-btn" onclick="doAction('clean_old')">Clean .exe.old</button>
+  <span class="path-copyable" onclick="copyText('C:\\\\My Drive\\\\Volumes')" title="Click to copy">📁 C:\My Drive\Volumes</span>
+  <button class="action-btn" id="github-btn" onclick="toggleGitHub()">GitHub ▾</button>
+  <div id="github-menu" style="display:none;position:absolute;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:6px;z-index:100;bottom:44px;right:16px;font-size:12px;min-width:180px;">
+    <div style="padding:3px 8px;cursor:pointer;color:var(--text-primary)" onclick="openGH('manager')">📦 manager</div>
+    <div style="padding:3px 8px;cursor:pointer;color:var(--text-primary)" onclick="openGH('local')">📦 local (mcp-windows)</div>
+    <div style="padding:3px 8px;cursor:pointer;color:var(--text-primary)" onclick="openGH('hands')">📦 hands (browser-mcp)</div>
+    <div style="padding:3px 8px;cursor:pointer;color:var(--text-primary)" onclick="openGH('workflow')">📦 workflow</div>
+    <div style="padding:3px 8px;cursor:pointer;color:var(--text-primary)" onclick="openGH('autonomous')">📦 autonomous</div>
+  </div>
+  <span id="action-status" style="font-size:11px;color:var(--text-secondary);margin-left:auto"></span>
+</div>
+
+<!-- Bottom Strip (fixed) -->
+<div class="bottom-strip" id="bottom-strip">
+  <div class="zone-card">
+    <div class="zone-title">Active Loafs</div>
+    <div class="zone-body" id="zone-loafs-body"><span style="color:var(--text-secondary)">—</span></div>
+  </div>
+  <div class="zone-card">
+    <div class="zone-title">Active Operations</div>
+    <div class="zone-body" id="zone-breadcrumb-body"><span style="color:var(--text-secondary)">—</span></div>
+  </div>
+  <div class="zone-card">
+    <div class="zone-title">Completed Today</div>
+    <div class="zone-body" id="zone-completed-body"><span style="color:var(--text-secondary)">—</span></div>
+  </div>
+  <div class="zone-card">
+    <div class="zone-title">Last 5 Tools</div>
+    <div class="zone-body" id="zone-tools-body"><span style="color:var(--text-secondary)">—</span></div>
+  </div>
+</div>
+
+</div><!-- /app -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// State
+// ============================================================
+const state = {
+  config: null,
+  servers: { manager: null, local: null, hands: null, workflow: null, autonomous: null, voice: null },
+  lastSeen: {},
+  failCounts: { manager: 0, local: 0, hands: 0, workflow: 0, autonomous: 0, voice: 0 },
+  collapsedNeverSeen: { hands: false, workflow: false, autonomous: false, voice: false },
+  showAll: false,
+  statusFilter: 'all',
+  view: 'full',
+  startTimes: {}, // task_id -> Date (for live timers)
+};
+
+const GITHUB_ORG = 'josephwander-arch';
+const GITHUB_REPOS = {
+  manager: 'manager', local: 'mcp-windows', hands: 'browser-mcp',
+  workflow: 'workflow', autonomous: 'autonomous'
+};
+
+// Label colors for session-label-chip (6 distinct)
+const LABEL_COLORS = ['#3b82f6','#22c55e','#a855f7','#f59e0b','#ef4444','#06b6d4'];
+
+// ============================================================
+// Boot
+// ============================================================
+async function boot() {
+  try {
+    const cfg = await fetch('/api/config').then(r => r.json());
+    state.config = cfg;
+  } catch(e) {
+    state.config = {
+      ports: { manager: location.port || 9100, local: 9101, hands: 9102, workflow: 9103, autonomous: 9104, voice: 9105 },
+      poll_intervals_ms: { manager: 5000, local: 5000, hands: 5000, workflow: 42000, autonomous: 42000, voice: 42000 }
+    };
+  }
+  startPolling();
+  setInterval(updateElapsedTimers, 1000);
+}
+
+function startPolling() {
+  const cfg = state.config;
+  const ports = cfg.ports;
+  const intervals = cfg.poll_intervals_ms;
+
+  pollServer('manager', `http://127.0.0.1:${ports.manager}/api/status`, intervals.manager);
+  pollServer('local',   `http://127.0.0.1:${ports.local}/api/status`,   intervals.local);
+  pollServer('hands',   `http://127.0.0.1:${ports.hands}/api/status`,   intervals.hands);
+  pollServer('workflow',`http://127.0.0.1:${ports.workflow}/api/status`, intervals.workflow);
+  pollServer('autonomous',`http://127.0.0.1:${ports.autonomous}/api/status`, intervals.autonomous);
+  pollServer('voice',     `http://127.0.0.1:${ports.voice}/api/status`,     intervals.voice);
+}
+
+// Servers that include a "server" discriminator field in their /api/status response.
+const SERVER_DISCRIMINATORS = { local: 'local', hands: 'hands', workflow: 'workflow' };
+
+function trackFail(name) {
+  if (!state.lastSeen[name] && name in state.collapsedNeverSeen) {
+    state.failCounts[name] = (state.failCounts[name] || 0) + 1;
+    if (state.failCounts[name] >= 2) {
+      state.collapsedNeverSeen[name] = true;
+    }
+  }
+}
+
+async function pollServer(name, url, intervalMs) {
+  if (!intervalMs || intervalMs < 1000) intervalMs = 5000;  // guard: undefined or pathologically small → 5s default
+  async function doFetch() {
+    try {
+      const r = await fetch(url, { signal: AbortSignal.timeout(4000) });
+      if (r.ok) {
+        const data = await r.json();
+        const expected = SERVER_DISCRIMINATORS[name];
+        if (expected && data.server && data.server !== expected) {
+          trackFail(name);
+        } else {
+          state.servers[name] = data;
+          state.lastSeen[name] = Date.now();
+          state.failCounts[name] = 0;
+          if (state.collapsedNeverSeen[name]) {
+            state.collapsedNeverSeen[name] = false;
+          }
+        }
+      } else {
+        state.servers[name] = { _error: r.status };
+        trackFail(name);
+      }
+    } catch(e) {
+      trackFail(name);
+    }
+    renderAll();
+  }
+  doFetch();
+  setInterval(doFetch, intervalMs);
+}
+
+// ============================================================
+// View/Filter
+// ============================================================
+function setView(v) {
+  state.view = v;
+  document.body.className = `view-${v}`;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+function setStatusFilter(f) {
+  state.statusFilter = f;
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  document.getElementById(`chip-${f}`)?.classList.add('active');
+  renderAll();
+}
+
+// ============================================================
+// Render all
+// ============================================================
+function renderAll() {
+  renderHealthStrip();
+  renderSessions();
+  renderScorecard();
+  renderHandsPanel();
+  renderWorkflowPanel();
+  renderAutonomousPanel();
+  renderBottomStrip();
+  updatePartialInstallLayout();
+  document.getElementById('last-refresh').textContent = `updated ${new Date().toLocaleTimeString()}`;
+}
+
+// ============================================================
+// Health strip
+// ============================================================
+function renderHealthStrip() {
+  const servers = ['manager','local','hands','workflow','autonomous','voice'];
+  servers.forEach(name => {
+    const el = document.getElementById(`strip-${name}`);
+    const dot = el.querySelector('.server-dot');
+    const ver = el.querySelector('.server-ver');
+    const age = el.querySelector('.server-age');
+    const data = state.servers[name];
+    const seen = state.lastSeen[name];
+
+    const isCollapsed = !state.showAll && state.collapsedNeverSeen[name];
+    el.style.display = isCollapsed ? 'none' : '';
+
+    if (seen) {
+      const secAgo = Math.floor((Date.now() - seen) / 1000);
+      age.textContent = secAgo < 5 ? ' just now' : ` ${secAgo}s ago`;
+    }
+
+    if (data && !data._error) {
+      dot.className = 'server-dot dot-online';
+      const v = data.version || data.server_version || '';
+      ver.textContent = v ? ` v${v}` : '';
+    } else if (seen) {
+      dot.className = 'server-dot dot-warn';
+      ver.textContent = ' (offline)';
+    } else {
+      dot.className = 'server-dot dot-offline';
+      ver.textContent = '';
+    }
+  });
+
+}
+
+// ============================================================
+// Sessions panel
+// ============================================================
+function renderSessions() {
+  const panel = document.getElementById('sessions-panel');
+  const data = state.servers.manager;
+  if (!data || !data.tasks) {
+    panel.innerHTML = '<div class="offline-card">Manager offline — no data</div>';
+    document.getElementById('session-count').textContent = '';
+    return;
+  }
+
+  let tasks = data.tasks || [];
+  const statusF = state.statusFilter;
+  const backendF = document.getElementById('backendFilter')?.value || 'all';
+
+  if (statusF !== 'all') tasks = tasks.filter(t => t.status === statusF);
+  if (backendF !== 'all') tasks = tasks.filter(t => t.backend === backendF || t.backend === backendF.replace('_','-'));
+
+  const groupByProject = document.getElementById('groupByProject')?.checked;
+  const sessions = data.sessions || {};
+  const countBadge = `${sessions.running||0}▶ ${sessions.queued||0}○ ${sessions.done||0}✓`;
+  document.getElementById('session-count').textContent = countBadge;
+
+  if (tasks.length === 0) {
+    panel.innerHTML = '<div class="empty-state">No sessions match filters</div>';
+    return;
+  }
+
+  const now = Date.now();
+
+  function renderCard(t) {
+    const statusBadge = `<span class="badge badge-${t.status}">${t.status}</span>`;
+    const backendKey = t.backend?.replace('claude_code','claude');
+    const backendBadge = `<span class="badge badge-${backendKey||'gpt'}">${t.backend||'?'}</span>`;
+    const orphanBadge = t.orphaned ? '<span class="badge badge-orphaned">ORPHANED</span>' : '';
+
+    // Elapsed
+    let elapsed = '';
+    if (t.started_at && (t.status === 'running' || t.status === 'queued')) {
+      state.startTimes[t.id] = new Date(t.started_at).getTime();
+      elapsed = `<span class="elapsed" data-start="${t.started_at}" id="elapsed-${t.id}">…</span>`;
+    } else if (t.started_at && t.completed_at) {
+      const ms = new Date(t.completed_at) - new Date(t.started_at);
+      elapsed = `<span>${fmtDuration(ms)}</span>`;
+    }
+
+    // Stall checks
+    const lastActMs = t.last_activity ? new Date(t.last_activity).getTime() : 0;
+    const stalled120 = lastActMs && t.status === 'running' && (now - lastActMs) > 120000;
+    const stalled600 = lastActMs && t.status === 'running' && (now - lastActMs) > 600000;
+
+    // Status classes
+    let cardClass = 'session-card';
+    if (stalled600) cardClass += ' status-stalled';
+    else if (stalled120) cardClass += ' stalled';
+    if (t.orphaned) cardClass += ' orphaned-card';
+
+    // Stall indicator in meta
+    let stallMeta = '';
+    if (stalled600) {
+      stallMeta = '· <span style="color:var(--accent-amber)" title="No output for 10+ min. Likely Claude Code freeze-at-init. Consider cancel + relaunch.">⚠ stalled 10m+</span>';
+    } else if (stalled120) {
+      stallMeta = '· <span style="color:var(--accent-amber)">⚠ stalled</span>';
+    }
+
+    // Steps / activity info — inline step reporting
+    let stepsInfo = '';
+    if (t.current_step != null && t.total_steps != null && t.total_steps > 0) {
+      const stepDesc = t.current_step_desc ? `: ${t.current_step_desc}` : '';
+      const linesNote = t.progress_lines ? ` · ${t.progress_lines} lines` : '';
+      stepsInfo = `Step ${t.current_step}/${t.total_steps}${stepDesc}${linesNote}`;
+    } else if (t.step_count > 0) {
+      stepsInfo = `[${t.steps_completed || 0}/${t.step_count}]`;
+    } else if (t.progress_lines) {
+      stepsInfo = `${t.progress_lines} output lines`;
+    }
+
+    // Label chip
+    let labelChipHtml = '';
+    if (t.label) {
+      let hash = 0;
+      for (let i = 0; i < t.label.length; i++) hash = (hash * 31 + t.label.charCodeAt(i)) & 0xffff;
+      const color = LABEL_COLORS[hash % LABEL_COLORS.length];
+      labelChipHtml = `<div class="session-label-chip" style="background:${color}22;color:${color};border-color:${color}55">${escHtml(t.label)}</div>`;
+    }
+
+    // Step progress bar — only show animated bars for running/queued; static summary for done/failed
+    let stepProgressHtml = '';
+    const isActive = t.status === 'running' || t.status === 'queued';
+    if (isActive && t.current_step != null && t.total_steps != null && t.total_steps > 0) {
+      const pct = Math.round(t.current_step / t.total_steps * 100);
+      const desc = t.current_step_desc ? ` · ${escHtml(t.current_step_desc)}` : '';
+      stepProgressHtml = `<div class="step-progress">
+        <div class="step-progress-bar"><div class="step-progress-fill" style="width:${pct}%"></div></div>
+        <div class="step-progress-label">${t.current_step}/${t.total_steps}${desc}</div>
+      </div>`;
+    } else if (isActive && t.step_count > 0) {
+      const done = t.steps_completed || 0;
+      const pct = Math.round(done / t.step_count * 100);
+      stepProgressHtml = `<div class="step-progress">
+        <div class="step-progress-bar"><div class="step-progress-fill" style="width:${pct}%"></div></div>
+        <div class="step-progress-label">[${done}/${t.step_count}] tool steps</div>
+      </div>`;
+    } else if (isActive && t.progress_lines > 0) {
+      stepProgressHtml = `<div class="step-progress">
+        <div class="step-progress-bar"><div class="step-progress-fill" style="width:100%;opacity:0.3;background:var(--accent-blue)"></div></div>
+        <div class="step-progress-label">${t.progress_lines} output lines · active</div>
+      </div>`;
+    } else if (!isActive) {
+      const total = t.total_steps || t.step_count || 0;
+      if (total > 0) {
+        const done = t.current_step || t.steps_completed || 0;
+        const icon = t.status === 'done' ? '\u2713' : '\u2717';
+        stepProgressHtml = `<div class="step-progress-label" style="margin-top:4px">${icon} ${done} tool steps</div>`;
+      }
+    }
+
+    // Live activity table (shown in expanded .card-detail)
+    let liveActivityHtml = '';
+    if (t.live_activity && t.live_activity.length > 0) {
+      const rows = t.live_activity.map(a =>
+        `<tr><td>${a.pid}</td><td>${escHtml(a.name)}</td><td title="${escHtml(a.cmd_preview||'')}">${escHtml((a.cmd_preview||'').slice(0,40))}</td><td>${a.cpu_percent != null ? a.cpu_percent.toFixed(1)+'%' : '—'}</td></tr>`
+      ).join('');
+      liveActivityHtml = `<table class="live-activity-table">
+        <thead><tr><th>PID</th><th>Name</th><th>Cmd</th><th>CPU</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+    }
+
+    const promptAttr = escHtml(t.prompt || t.prompt_preview || '');
+
+    return `<div class="${cardClass}"
+      data-prompt="${promptAttr}"
+      onclick="openDetail(this)">
+      ${labelChipHtml}
+      <div class="card-row">
+        <span class="card-title">${t.id}</span>
+        ${statusBadge}${backendBadge}${orphanBadge}
+      </div>
+      <div class="card-prompt">${escHtml(t.prompt_preview||'')}</div>
+      ${stepProgressHtml}
+      <div class="card-meta">
+        ${elapsed ? `⏱ ${elapsed}` : ''}
+        ${stepsInfo ? `· ${stepsInfo}` : ''}
+        ${stallMeta}
+      </div>
+      <div class="card-detail">
+        ${t.created_at ? `Created: ${fmtTime(t.created_at)}` : ''}
+        ${liveActivityHtml}
+      </div>
+    </div>`;
+  }
+
+  if (groupByProject) {
+    const groups = {};
+    tasks.forEach(t => {
+      const g = t.backend || 'unknown';
+      if (!groups[g]) groups[g] = [];
+      groups[g].push(t);
+    });
+    panel.innerHTML = Object.entries(groups).map(([g, ts]) =>
+      `<div class="project-header">${g}</div>${ts.map(renderCard).join('')}`
+    ).join('');
+  } else {
+    panel.innerHTML = tasks.map(renderCard).join('');
+  }
+
+  updateElapsedTimers();
+}
+
+// aggregateToolCalls() — removed 2026-04-17: replaced by inline Last 5 Tools
+// widget in renderBottomStrip() Zone 4. Tool call data is now aggregated
+// from state.servers[*].recent_tool_calls (already polled) instead of
+// making separate fetch calls.
+
+// ============================================================
+// Bottom strip (4 zones)
+// ============================================================
+function renderBottomStrip() {
+  const mdata = state.servers.manager;
+  const ldata = state.servers.local;
+  const adata = state.servers.autonomous;
+
+  // Zone 1: Active Loafs (falls back to active breadcrumbs)
+  const loafBody = document.getElementById('zone-loafs-body');
+  if (mdata?.loaf) {
+    const loaf = mdata.loaf;
+    const loafId = loaf.id || 'active';
+    const loafStatus = loaf.data?.status || loaf.data?.health || '';
+    loafBody.innerHTML = `<div style="font-size:11px;color:var(--accent-green);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">\u25cf ${escHtml(String(loafId))}</div>
+      ${loafStatus ? `<div style="font-size:10px;color:var(--text-secondary)">${escHtml(String(loafStatus))}</div>` : ''}`;
+  } else {
+    // Fallback: show active breadcrumbs summary
+    let bcCount = 0;
+    if (mdata?.active_breadcrumbs) bcCount += mdata.active_breadcrumbs.filter(b => !b.aborted).length;
+    if (ldata?.breadcrumbs) {
+      const lb = Array.isArray(ldata.breadcrumbs) ? ldata.breadcrumbs : (ldata.breadcrumbs.active ?? []);
+      bcCount += lb.filter(b => !b.aborted && ((b.total_steps ?? 0) === 0 || (b.steps_completed ?? 0) < (b.total_steps ?? 0))).length;
+    }
+    if (adata?.breadcrumbs) {
+      const ab = Array.isArray(adata.breadcrumbs) ? adata.breadcrumbs : (adata.breadcrumbs.active ?? []);
+      bcCount += ab.filter(b => !b.aborted && ((b.total_steps ?? 0) === 0 || (b.steps_completed ?? 0) < (b.total_steps ?? 0))).length;
+    }
+    if (bcCount > 0) {
+      loafBody.innerHTML = `<div style="font-size:11px;color:var(--accent-blue);font-weight:500">${bcCount} active operation${bcCount > 1 ? 's' : ''}</div>
+        <div style="font-size:10px;color:var(--text-secondary)">See breadcrumbs panel</div>`;
+    } else {
+      loafBody.innerHTML = '<span style="color:var(--text-secondary);font-size:11px">No active loaf</span>';
+    }
+  }
+
+  // Zone 2: Active Breadcrumbs — merged from manager's aggregated CPC state + polled servers
+  // v1.3.8: tap-to-expand panel with steps detail, server tags, multi-source merge
+  const bcBody = document.getElementById('zone-breadcrumb-body');
+  const allBcs = [];
+  const seenIds = new Set();
+
+  // Source 1: manager aggregated active_breadcrumbs (reads CPC state/breadcrumbs/active.index.json)
+  if (mdata?.active_breadcrumbs) {
+    for (const b of mdata.active_breadcrumbs) {
+      if (b.aborted) continue;
+      const key = b.id || b.name;
+      if (!seenIds.has(key)) { seenIds.add(key); allBcs.push({...b, _source: b.source || 'cpc-state'}); }
+    }
+  }
+
+  // Source 2: local server breadcrumbs (if polling returns them)
+  if (ldata?.breadcrumbs) {
+    const lbcs = Array.isArray(ldata.breadcrumbs) ? ldata.breadcrumbs : (ldata.breadcrumbs.active ?? []);
+    for (const b of lbcs) {
+      if (b.aborted) continue;
+      const key = b.id || b.name;
+      if (!seenIds.has(key)) { seenIds.add(key); allBcs.push({...b, _source: 'local'}); }
+    }
+  }
+
+  // Source 3: autonomous server breadcrumbs (if polling returns them)
+  if (adata?.breadcrumbs) {
+    const abcs = Array.isArray(adata.breadcrumbs) ? adata.breadcrumbs : (adata.breadcrumbs.active ?? []);
+    for (const b of abcs) {
+      if (b.aborted) continue;
+      const key = b.id || b.name;
+      if (!seenIds.has(key)) { seenIds.add(key); allBcs.push({...b, _source: 'autonomous'}); }
+    }
+  }
+
+  // Filter to active-only and sort newest-first
+  const activeBcs = allBcs
+    .filter(b => {
+      const cur = b.current_step ?? b.steps_completed ?? 0;
+      const tot = b.total_steps ?? 0;
+      return tot === 0 || cur < tot;
+    })
+    .sort((a, b) => {
+      const aT = new Date(a.started_at || a.created_at || 0).getTime();
+      const bT = new Date(b.started_at || b.created_at || 0).getTime();
+      return bT - aT;
+    });
+
+  if (activeBcs.length > 0) {
+    bcBody.innerHTML = activeBcs.map(b => {
+      const cur = b.current_step ?? b.steps_completed ?? 0;
+      const tot = b.total_steps ?? 0;
+      const pct = tot > 0 ? Math.round(cur / tot * 100) : 0;
+      let timeSince = '';
+      const startedAt = b.started_at || b.created_at;
+      if (startedAt) {
+        const ms = Date.now() - new Date(startedAt).getTime();
+        if (!isNaN(ms) && ms > 0) timeSince = fmtDuration(ms);
+      }
+      const srcClass = b._source === 'local' ? 'local' : b._source === 'autonomous' ? 'autonomous' : 'cpc-state';
+      const srcLabel = b._source === 'cpc-state' ? 'cpc' : b._source;
+      const bcId = 'bc-' + (b.id || '').replace(/[^a-zA-Z0-9_-]/g, '');
+
+      // Steps detail (expandable)
+      let stepsHtml = '';
+      if (b.steps && Array.isArray(b.steps) && b.steps.length > 0) {
+        const stepResults = b.step_results || [];
+        stepsHtml = b.steps.map((s, i) => {
+          const isDone = i < cur;
+          const isCurrent = i === cur;
+          const cls = isDone ? 'done' : isCurrent ? 'current' : '';
+          const icon = isDone ? '✓' : isCurrent ? '▸' : '·';
+          const result = stepResults[i] || '';
+          const resultTrunc = result.length > 60 ? result.slice(0, 57) + '...' : result;
+          return `<div class="bc-step-row ${cls}">${icon} <span>${escHtml(typeof s === 'string' ? s : (s.name || s.description || ''))}</span>${resultTrunc ? `<span style="margin-left:auto;opacity:0.6" title="${escHtml(result)}">${escHtml(resultTrunc)}</span>` : ''}</div>`;
+        }).join('');
+      }
+      const ownerHtml = b.owner ? `<span class="bc-owner-tag">${escHtml(b.owner)}</span>` : '';
+      const projHtml = b.project_id ? `<span class="bc-owner-tag">${escHtml(b.project_id)}</span>` : '';
+
+      return `<div class="bc-card" id="${bcId}" onclick="this.classList.toggle('expanded')">
+        <div style="display:flex;align-items:center;gap:4px">
+          <span class="bc-server-tag ${srcClass}">${escHtml(srcLabel)}</span>
+          <span style="font-size:11px;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1" title="${escHtml(b.name||b.id)}">${escHtml(b.name||b.id)}</span>
+          ${ownerHtml}${projHtml}
+        </div>
+        <div class="bc-progress-bar"><div class="bc-progress-fill" style="width:${pct}%"></div></div>
+        <div style="font-size:10px;color:var(--text-secondary)">step ${cur}/${tot} · ${pct}%${timeSince ? ` · ${timeSince}` : ''}</div>
+        ${stepsHtml ? `<div class="bc-steps-detail">${stepsHtml}</div>` : ''}
+      </div>`;
+    }).join('');
+  } else if (mdata?.status_bar?.breadcrumb && mdata.status_bar.breadcrumb !== 'none') {
+    bcBody.innerHTML = `<div style="font-size:11px;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(mdata.status_bar.breadcrumb)}</div>
+      <div style="font-size:10px;color:var(--text-secondary)">From manager status_bar</div>`;
+  } else {
+    bcBody.innerHTML = '<span style="color:var(--text-secondary);font-size:11px;opacity:0.5">No active operation</span>';
+  }
+
+  // Zone 3: Completed Today — check completed arrays + archive_today_count fallback
+  const compBody = document.getElementById('zone-completed-body');
+  let completedItems = [];
+
+  // Source 1: completed array from local breadcrumbs (structured response)
+  if (ldata?.breadcrumbs && !Array.isArray(ldata.breadcrumbs) && Array.isArray(ldata.breadcrumbs.completed)) {
+    completedItems = ldata.breadcrumbs.completed.filter(b => !b.aborted && b.name);
+  }
+  // Source 2: completed array from autonomous breadcrumbs
+  if (adata?.breadcrumbs && !Array.isArray(adata.breadcrumbs) && Array.isArray(adata.breadcrumbs.completed)) {
+    completedItems = completedItems.concat(adata.breadcrumbs.completed.filter(b => !b.aborted && b.name));
+  }
+  // Source 3: flat array fallback — filter for items where steps_completed >= total_steps
+  if (completedItems.length === 0 && ldata?.breadcrumbs) {
+    const all = Array.isArray(ldata.breadcrumbs) ? ldata.breadcrumbs : [...(ldata.breadcrumbs.active ?? []), ...(ldata.breadcrumbs.completed ?? [])];
+    completedItems = all.filter(b =>
+      !b.aborted && b.name &&
+      (b.steps_completed ?? 0) >= (b.total_steps ?? 0) && (b.total_steps ?? 0) > 0
+    );
+  }
+
+  const last3 = completedItems.slice(-3).reverse();
+  if (last3.length > 0) {
+    compBody.innerHTML = last3.map(b =>
+      `<div style="font-size:11px;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(b.name)}">\u2713 ${escHtml(b.name)}</div>`
+    ).join('');
+  } else {
+    // Fallback: use archive_today_count if available
+    const archiveCount = ldata?.breadcrumbs?.archive_today_count;
+    if (typeof archiveCount === 'number' && archiveCount > 0) {
+      compBody.innerHTML = `<div style="font-size:11px;color:var(--text-secondary)">\u2713 ${archiveCount} operation${archiveCount > 1 ? 's' : ''} completed today</div>`;
+    } else {
+      compBody.innerHTML = '<span style="color:var(--text-secondary);font-size:11px">None today</span>';
+    }
+  }
+
+  // Zone 4: Last 5 Tools (cross-server: manager API log-tail + polled servers)
+  const toolsBody = document.getElementById('zone-tools-body');
+  const allCalls = [];
+  // Source 1: cross_server_recent_tools from manager (log-tailed + ring buffer)
+  if (mdata?.cross_server_recent_tools) {
+    mdata.cross_server_recent_tools.forEach(c => allCalls.push({
+      _server: c.server || 'manager',
+      tool_name: c.tool || c.tool_name || '?',
+      timestamp_utc: c.timestamp || c.timestamp_utc || '',
+      duration_ms: c.duration_ms,
+    }));
+  }
+  // Source 2: polled servers' recent_tool_calls (catches hands/local/workflow live data)
+  for (const [sname, sdata] of Object.entries(state.servers)) {
+    if (sname === 'manager') continue; // already covered by cross_server_recent_tools
+    if (sdata?.recent_tool_calls) {
+      sdata.recent_tool_calls.forEach(c => allCalls.push({...c, _server: sname}));
+    }
+  }
+  const seenTc = new Set();
+  const dedupedTc = allCalls.filter(c => {
+    const key = `${c._server}|${c.tool_name}|${c.timestamp_utc}`;
+    if (seenTc.has(key)) return false;
+    seenTc.add(key);
+    return true;
+  });
+  dedupedTc.sort((a, b) => (b.timestamp_utc || '').localeCompare(a.timestamp_utc || ''));
+  const top5 = dedupedTc.slice(0, 5);
+
+  if (top5.length === 0) {
+    toolsBody.innerHTML = '<span style="color:var(--text-secondary);font-size:11px;font-style:italic">No tool calls yet</span>';
+  } else {
+    const nowMs = Date.now();
+    toolsBody.innerHTML = top5.map((c, idx) => {
+      const ts = new Date(c.timestamp_utc);
+      // HH:MM:SS absolute time
+      let timeStr = '';
+      if (!isNaN(ts.getTime())) {
+        timeStr = ts.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+      }
+      const durStr = c.duration_ms != null ? `${c.duration_ms}ms` : '';
+      const isCurrent = idx === 0 && c.duration_ms == null;
+      const rowClass = isCurrent ? 'tc-row tc-current' : 'tc-row';
+      return `<div class="${rowClass}">
+        <span class="tc-meta" style="min-width:52px">${timeStr}</span>
+        <span style="color:var(--accent-purple);font-size:9px;min-width:44px">${escHtml(c._server)}</span>
+        <span class="tc-name" title="${escHtml(c.tool_name)}">${escHtml(c.tool_name)}</span>
+        ${durStr ? `<span class="tc-dur">${durStr}</span>` : ''}
+      </div>`;
+    }).join('');
+  }
+}
+
+// ============================================================
+// Scorecard
+// ============================================================
+function renderScorecard() {
+  const grid = document.getElementById('scorecard-grid');
+  const mdata = state.servers.manager;
+  const ldata = state.servers.local;
+
+  const sessions = mdata?.sessions || {};
+  const adata = state.servers.autonomous;
+  const running = sessions.running || 0;
+  const done = sessions.done || 0;
+  const failed = sessions.failed || 0;
+  const orphaned = sessions.orphaned || 0;
+
+  // Extractions today — prefer autonomous, fallback to manager/local
+  const extractions = adata?.extractions_today ?? mdata?.extractions_today ?? ldata?.extractions_today ?? '—';
+
+  // Breadcrumbs completed today — prefer local's pre-computed archive_today_count
+  let bcCompleteToday = 0;
+  if (ldata?.breadcrumbs) {
+    if (typeof ldata.breadcrumbs.archive_today_count === 'number') {
+      bcCompleteToday = ldata.breadcrumbs.archive_today_count;
+    } else {
+      // Fallback: filter a completed array if the server exposes one
+      const bcAll = Array.isArray(ldata.breadcrumbs) ? ldata.breadcrumbs : (ldata.breadcrumbs.completed ?? ldata.breadcrumbs.active ?? []);
+      const todayStr = new Date().toISOString().slice(0, 10);
+      bcCompleteToday = bcAll.filter(b => {
+        const cd = b.completed_at || b.completion_date || '';
+        return cd.startsWith(todayStr) && !b.aborted;
+      }).length;
+    }
+  }
+
+  // Pending exe swaps
+  const pendingSwaps = mdata?.pending_swaps ?? 0;
+
+  const items = [
+    { label: 'Running', value: running, cls: running > 0 ? 'good' : '' },
+    { label: 'Done today', value: done, cls: done > 0 ? 'good' : '' },
+    { label: 'Failed', value: failed, cls: failed > 0 ? 'warn' : '' },
+    { label: 'Orphaned', value: orphaned, cls: orphaned > 0 ? 'warn' : '' },
+    { label: 'Extractions', value: extractions, cls: (typeof extractions === 'number' && extractions > 0) ? 'good' : '' },
+    { label: 'BC Complete', value: bcCompleteToday, cls: bcCompleteToday > 0 ? 'good' : '' },
+    { label: 'Pending Swaps', value: pendingSwaps, cls: pendingSwaps > 0 ? 'warn' : '' },
+  ];
+
+  grid.innerHTML = items.map(i =>
+    `<div class="score-item"><div class="score-label">${i.label}</div><div class="score-value${i.cls?' '+i.cls:''}">${i.value}</div></div>`
+  ).join('');
+}
+
+// ============================================================
+// Service panels
+// ============================================================
+function renderHandsPanel() {
+  const panel = document.getElementById('hands-panel');
+  const grid = document.getElementById('hands-grid');
+  const age = document.getElementById('hands-age');
+  const data = state.servers.hands;
+  const seen = state.lastSeen.hands;
+
+  if (!state.showAll && state.collapsedNeverSeen.hands) {
+    panel.style.display = 'none';
+    return;
+  }
+  panel.style.display = '';
+
+  if (seen) age.textContent = `${Math.floor((Date.now()-seen)/1000)}s ago`;
+
+  if (!data || data._error) {
+    grid.innerHTML = '<div class="offline-card" style="grid-column:1/-1">Hands offline</div>';
+    return;
+  }
+
+  const lastCall = (data.recent_tool_calls && data.recent_tool_calls[0]) ? data.recent_tool_calls[0] : null;
+  const browser = data.browser || {};
+  const rows = [
+    ['Browser', browser.status || '—'],
+    ['URL', browser.current_url || '—'],
+    ['Tabs', browser.tab_count ?? '—'],
+    ['Contexts', (Array.isArray(browser.contexts) ? (browser.contexts.length ? browser.contexts.join(', ') : '\u2014') : (browser.contexts ?? '\u2014'))],
+    ['Last tool', lastCall ? lastCall.tool_name : '—'],
+    ['Version', data.version || '—'],
+  ];
+  grid.innerHTML = rows.map(([l,v]) =>
+    `<span class="svc-label">${l}</span><span class="svc-value" title="${escHtml(String(v))}">${escHtml(String(v))}</span>`
+  ).join('');
+}
+
+function renderWorkflowPanel() {
+  const panel = document.getElementById('workflow-panel');
+  const grid = document.getElementById('workflow-grid');
+  const age = document.getElementById('workflow-age');
+  const data = state.servers.workflow;
+  const seen = state.lastSeen.workflow;
+
+  if (!state.showAll && state.collapsedNeverSeen.workflow) {
+    panel.style.display = 'none';
+    return;
+  }
+  panel.style.display = '';
+
+  if (seen) age.textContent = `${Math.floor((Date.now()-seen)/1000)}s ago`;
+
+  if (!data || data._error) {
+    grid.innerHTML = '<div class="offline-card" style="grid-column:1/-1">Workflow offline</div>';
+    return;
+  }
+
+  const wfLastCall = (data.recent_tool_calls && data.recent_tool_calls[0]) ? data.recent_tool_calls[0] : null;
+  const rows = [
+    ['Credentials', data.credentials?.count ?? '—'],
+    ['TOTP entries', data.totp?.count ?? '—'],
+    ['Flows', data.flows?.count ?? '—'],
+    ['Watches (active)', data.watches?.active_count ?? '—'],
+    ['Last flow', data.flows?.last_run?.name || '—'],
+    ['Last tool', wfLastCall ? wfLastCall.tool_name : '—'],
+    ['Version', data.version || '—'],
+  ];
+  grid.innerHTML = rows.map(([l,v]) =>
+    `<span class="svc-label">${l}</span><span class="svc-value">${escHtml(String(v))}</span>`
+  ).join('');
+}
+
+function renderAutonomousPanel() {
+  const panel = document.getElementById('autonomous-panel');
+  const grid = document.getElementById('autonomous-grid');
+  const age = document.getElementById('autonomous-age');
+  const data = state.servers.autonomous;
+  const seen = state.lastSeen.autonomous;
+
+  if (!state.showAll && state.collapsedNeverSeen.autonomous) { panel.style.display = 'none'; return; }
+  if (!data && !seen) { panel.style.display = 'none'; return; }
+  panel.style.display = '';
+  if (seen) age.textContent = `${Math.floor((Date.now()-seen)/1000)}s ago`;
+
+  if (!data || data._error) {
+    grid.innerHTML = '<div class="offline-card" style="grid-column:1/-1">Autonomous offline</div>';
+    return;
+  }
+
+  const rows = [
+    ['Extractions today', data.extractions_today ?? '—'],
+    ['Reminders pending', data.reminders_pending ?? '—'],
+    ['Index', data.index_status || data.status || '—'],
+    ['Version', data.version || '—'],
+  ];
+  grid.innerHTML = rows.map(([l,v]) =>
+    `<span class="svc-label">${l}</span><span class="svc-value">${escHtml(String(v))}</span>`
+  ).join('');
+}
+
+// ============================================================
+// Live elapsed timers
+// ============================================================
+function updateElapsedTimers() {
+  document.querySelectorAll('[data-start]').forEach(el => {
+    const start = new Date(el.dataset.start).getTime();
+    if (!isNaN(start)) {
+      el.textContent = fmtDuration(Date.now() - start);
+    }
+  });
+}
+
+// ============================================================
+// ============================================================
+// ============================================================
+// Session Detail panel (right side, always-on detail view)
+// ============================================================
+function openDetail(cardEl) {
+  const prompt = cardEl.dataset.prompt || '';
+  const taskId = cardEl.querySelector('.card-title')?.textContent || '';
+  if (!prompt) return;
+  
+  // Mark selected
+  document.querySelectorAll('.session-card.selected').forEach(el => el.classList.remove('selected'));
+  cardEl.classList.add('selected');
+  
+  // Update header title
+  const titleEl = document.getElementById('detail-panel-title');
+  if (titleEl) titleEl.textContent = taskId || 'Session Detail';
+  
+  // Build detail view
+  const panel = document.getElementById('tool-calls-panel');
+  const backend = cardEl.querySelector('.backend-badge')?.textContent || '';
+  const status = cardEl.querySelector('.status-badge')?.textContent || '';
+  const elapsed = cardEl.querySelector('.elapsed')?.textContent || '';
+  panel.innerHTML = `<div class="detail-view">
+    <div class="detail-meta">
+      ${status ? `<span><strong>Status:</strong> ${status}</span>` : ''}
+      ${backend ? `<span><strong>Backend:</strong> ${backend}</span>` : ''}
+      ${elapsed ? `<span><strong>Elapsed:</strong> ${elapsed}</span>` : ''}
+    </div>
+    <div class="detail-body"></div>
+  </div>`;
+  panel.querySelector('.detail-body').textContent = prompt;
+}
+
+// Stub — kept for backward compat but not needed with always-on detail panel
+function closeDetail() {
+  document.querySelectorAll('.session-card.selected').forEach(el => el.classList.remove('selected'));
+  const titleEl = document.getElementById('detail-panel-title');
+  if (titleEl) titleEl.textContent = 'Session Detail';
+  const panel = document.getElementById('tool-calls-panel');
+  if (panel) panel.innerHTML = '<div class="empty-state">Click a session or task to see full details</div>';
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDetail(); });
+
+
+
+// ============================================================
+// Actions
+// ============================================================
+async function doAction(action) {
+  const statusEl = document.getElementById('action-status');
+  if (action === 'clean_old') {
+    try {
+      const r = await fetch('http://127.0.0.1:9101/api/action/clean_old', { method: 'POST' });
+      const msg = r.ok ? 'Cleaned .exe.old files' : `Error ${r.status}`;
+      statusEl.textContent = msg;
+      showToast(msg);
+    } catch(e) {
+      statusEl.textContent = 'Local offline — cannot clean';
+      showToast('Local server offline');
+    }
+  }
+  setTimeout(() => statusEl.textContent = '', 5000);
+}
+
+function copyText(text) {
+  navigator.clipboard?.writeText(text).then(() => showToast('Copied!'));
+}
+
+function toggleGitHub() {
+  const menu = document.getElementById('github-menu');
+  menu.style.display = menu.style.display === 'none' ? '' : 'none';
+}
+
+function openGH(server) {
+  window.open(`https://github.com/${GITHUB_ORG}/${GITHUB_REPOS[server]}`, '_blank');
+  document.getElementById('github-menu').style.display = 'none';
+}
+
+document.addEventListener('click', e => {
+  const menu = document.getElementById('github-menu');
+  if (!e.target.closest('#github-btn') && !e.target.closest('#github-menu')) {
+    menu.style.display = 'none';
+  }
+});
+
+// ============================================================
+// Helpers
+// ============================================================
+function fmtDuration(ms) {
+  if (ms < 0) ms = 0;
+  const s = Math.floor(ms / 1000);
+  const m = Math.floor(s / 60);
+  const h = Math.floor(m / 60);
+  if (h > 0) return `${h}h${String(m%60).padStart(2,'0')}m`;
+  if (m > 0) return `${m}m${String(s%60).padStart(2,'0')}s`;
+  return `${s}s`;
+}
+
+function fmtTime(iso) {
+  try { return new Date(iso).toLocaleTimeString(); } catch { return iso; }
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ============================================================
+// Partial install layout
+// ============================================================
+function updatePartialInstallLayout() {
+  const optional = ['hands', 'workflow', 'autonomous', 'voice'];
+  const collapsed = optional.filter(n => !state.showAll && state.collapsedNeverSeen[n]);
+  const footer = document.getElementById('partial-install-footer');
+  const msg = document.getElementById('partial-install-msg');
+  const servicesRow = document.getElementById('services-row');
+  const showAllLink = footer.querySelector('.show-all-link');
+
+  if (collapsed.length > 0 && !state.showAll) {
+    const names = collapsed.join(', ');
+    msg.textContent = `${collapsed.length} additional server${collapsed.length > 1 ? 's' : ''} not detected (${names}) ·`;
+    footer.classList.add('visible');
+    showAllLink.style.display = '';
+  } else {
+    footer.classList.remove('visible');
+  }
+
+  const handsCollapsed = !state.showAll && state.collapsedNeverSeen.hands;
+  const workflowCollapsed = !state.showAll && state.collapsedNeverSeen.workflow;
+  if (handsCollapsed && workflowCollapsed) {
+    servicesRow.style.display = 'none';
+    document.body.classList.add('no-services');
+  } else {
+    servicesRow.style.display = '';
+    document.body.classList.remove('no-services');
+  }
+}
+
+function showAllServers() {
+  state.showAll = true;
+  renderAll();
+}
+
+// ============================================================
+// Init
+// ============================================================
+boot();
+document.getElementById('chip-all').classList.add('active');
+</script>
+</body>
+</html>
