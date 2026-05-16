@@ -12,3 +12,7 @@ readme = "../../README.md"
 [[bin]]
 name = "dashboard"
 path = "src/main.rs"
+
+[dependencies]
+install-common = { path = "../install-common" }
+anyhow = "1"

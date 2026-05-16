@@ -1,26 +1,56 @@
 //! Universal-Ops manager — orchestrates delegation to coding agents.
 //!
-//! v0.1.0-alpha: scaffold only. Real orchestration lands in subsequent commits.
+//! v0.1.0-alpha: install/uninstall subcommands wired; serve mode is scaffold-only.
+//! See https://github.com/AIWander/Universal-Ops for status.
 
-fn main() {
-    let version = env!("CARGO_PKG_VERSION");
+use anyhow::Result;
+
+const SERVER_KEY: &str = "universal-manager";
+const BINARY_NAME: &str = "manager";
+
+fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().collect();
+    let sub = args.get(1).map(|s| s.as_str());
 
-    match args.get(1).map(String::as_str) {
+    match sub {
         Some("--version") | Some("-V") => {
-            println!("manager {version}");
+            println!("{} {}", BINARY_NAME, env!("CARGO_PKG_VERSION"));
+            Ok(())
         }
-        Some("install") => {
-            eprintln!("install subcommand not yet implemented (scaffold v{version}).");
+        Some("--help") | Some("-h") => {
+            print_help();
+            Ok(())
+        }
+        Some("install") => install_common::install(SERVER_KEY, &args[2..]),
+        Some("uninstall") => install_common::uninstall(SERVER_KEY, &args[2..]),
+        Some("serve") | None => run_serve(),
+        Some(other) => {
+            eprintln!("Unknown subcommand: {}", other);
+            print_help();
             std::process::exit(2);
-        }
-        Some("uninstall") => {
-            eprintln!("uninstall subcommand not yet implemented (scaffold v{version}).");
-            std::process::exit(2);
-        }
-        _ => {
-            eprintln!("manager (Universal-Ops) v{version} — scaffold, not yet functional.");
-            eprintln!("See https://github.com/AIWander/Universal-Ops for status.");
         }
     }
+}
+
+fn print_help() {
+    println!("Universal-Ops manager v{}", env!("CARGO_PKG_VERSION"));
+    println!();
+    println!("USAGE:");
+    println!("  manager                              Run as MCP server (scaffold-only currently)");
+    println!("  manager serve                        Same as above");
+    println!("  manager install --target <host>      Register with host config as '{}'", SERVER_KEY);
+    println!("  manager uninstall --target <host>    Unregister from host config");
+    println!("  manager --version                    Print version");
+    println!("  manager --help                       Print this help");
+    println!();
+    install_common::print_install_help(BINARY_NAME, SERVER_KEY);
+    println!();
+    println!("Repository: https://github.com/AIWander/Universal-Ops");
+}
+
+fn run_serve() -> Result<()> {
+    eprintln!("manager (Universal-Ops) v{} — serve mode is scaffold-only.", env!("CARGO_PKG_VERSION"));
+    eprintln!("Real orchestration logic lands in subsequent commits.");
+    eprintln!("See https://github.com/AIWander/Universal-Ops#manual-delegation-until-v1-ships for the manual delegation workflow.");
+    std::process::exit(2);
 }
