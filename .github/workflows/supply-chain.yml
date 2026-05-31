@@ -3,7 +3,8 @@ name: Supply Chain
 # Software-composition analysis:
 #  - cargo audit: RustSec advisories (vulnerabilities / unmaintained / unsound / yanked)
 #  - cargo deny:  license compliance, dependency bans, source allow-listing
-# Advisories are owned by the audit job; deny covers licenses/bans/sources to avoid overlap.
+# Both tools installed via taiki-e/install-action (prebuilt binaries — fast + reliable,
+# avoids slow/network-flaky `cargo install` compiles). Advisories owned by the audit job.
 
 on:
   push:
@@ -24,9 +25,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: dtolnay/rust-toolchain@stable
-      - name: Install cargo-audit
-        run: command -v cargo-audit || cargo install cargo-audit --locked
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-audit
       - name: cargo audit
         run: cargo audit
 
