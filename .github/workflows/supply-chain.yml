@@ -1,18 +1,18 @@
 name: Supply Chain
 
-# Software-composition analysis: scans Cargo.lock against the RustSec
-# advisory database for known-vulnerable / unmaintained dependencies.
-# Runs on every push to main, every PR, and weekly (catches newly
-# disclosed advisories in already-pinned deps without a code change).
+# Software-composition analysis:
+#  - cargo audit: RustSec advisories (vulnerabilities / unmaintained / unsound / yanked)
+#  - cargo deny:  license compliance, dependency bans, source allow-listing
+# Advisories are owned by the audit job; deny covers licenses/bans/sources to avoid overlap.
 
 on:
   push:
     branches: [main]
-    paths: ["**/Cargo.toml", "**/Cargo.lock", ".github/workflows/supply-chain.yml"]
+    paths: ["**/Cargo.toml", "**/Cargo.lock", "deny.toml", ".github/workflows/supply-chain.yml"]
   pull_request:
-    paths: ["**/Cargo.toml", "**/Cargo.lock", ".github/workflows/supply-chain.yml"]
+    paths: ["**/Cargo.toml", "**/Cargo.lock", "deny.toml", ".github/workflows/supply-chain.yml"]
   schedule:
-    - cron: "0 6 * * 1" # Mondays 06:00 UTC
+    - cron: "0 6 * * 1"
   workflow_dispatch: {}
 
 permissions:
@@ -25,15 +25,18 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
-      - name: Cache cargo-audit
-        uses: actions/cache@v4
-        with:
-          path: ~/.cargo/bin/cargo-audit
-          key: cargo-audit-bin-v1
       - name: Install cargo-audit
         run: command -v cargo-audit || cargo install cargo-audit --locked
-      # Exits non-zero on actual vulnerabilities (the CI gate). Unmaintained /
-      # yanked notices are advisory only and do NOT fail the build by default —
-      # review them in the run log and address via Dependabot.
       - name: cargo audit
         run: cargo audit
+
+  deny:
+    name: cargo deny
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deny
+      - name: cargo deny check
+        run: cargo deny check licenses bans sources
