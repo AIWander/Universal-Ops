@@ -4,7 +4,7 @@ name: Supply Chain
 #  - cargo audit: RustSec advisories (vulnerabilities / unmaintained / unsound / yanked)
 #  - cargo deny:  license compliance, dependency bans, source allow-listing
 # Both tools installed via taiki-e/install-action (prebuilt binaries — fast + reliable,
-# avoids slow/network-flaky `cargo install` compiles). Advisories owned by the audit job.
+# and Dependabot-visible as GitHub Actions so the toolchain stays current).
 
 on:
   push:
@@ -24,7 +24,7 @@ jobs:
     name: cargo audit
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: taiki-e/install-action@v2
         with:
           tool: cargo-audit
@@ -35,7 +35,7 @@ jobs:
     name: cargo deny
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: taiki-e/install-action@v2
         with:
           tool: cargo-deny
