@@ -10,7 +10,7 @@ members = [
 [workspace.package]
 version = "1.1.1"
 edition = "2021"
-authors = ["Joseph Wander <josephwander@gmail.com>"]
+authors = ["Joseph Wander <contact@aiwander.ai>"]
 license = "MIT"
 repository = "https://github.com/AIWander/Universal-Ops"
 rust-version = "1.75"

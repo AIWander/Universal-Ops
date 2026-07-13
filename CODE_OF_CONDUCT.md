@@ -45,7 +45,7 @@ individual is officially representing the community in public spaces.
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
 reported to the maintainers responsible for enforcement at
-**josephwander@gmail.com**. All complaints will be reviewed and investigated
+**contact@aiwander.ai**. All complaints will be reviewed and investigated
 promptly and fairly.
 
 ## Attribution

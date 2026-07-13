@@ -2,7 +2,8 @@
 
 > **Operations Locally** — the local execution layer for any AI coding agent.
 
-**Status:** alpha. Pairs with manager-delegated coding agents (Claude Code, Codex, Gemini, LM Studio LLMs).
+**Status:** alpha. The manager and dashboard are **Beta and coming soon** as polished public
+products. This repository is a scaffold/test surface, not the recommended front door.
 
 [![Build](https://github.com/AIWander/Universal-Ops/actions/workflows/build.yml/badge.svg)](https://github.com/AIWander/Universal-Ops/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -14,9 +15,9 @@ Three binaries that work together:
 
 | Binary | Registers as | What it does |
 |---|---|---|
-| **manager.exe** | `universal-manager` | Orchestrator. You ask "do X" in your chat; manager picks the smartest available coding agent and delegates. ~44 tools. |
+| **manager.exe** | `universal-manager` | Beta, coming soon. Orchestrator scaffold for delegated coding agents. |
 | **ops.exe** | `universal-ops` | The hands. Whatever agent manager pulled in uses ops to actually operate on your machine — shells, files, git, deploy lifecycle, breadcrumbs. ~80 tools. |
-| **dashboard.exe** | `universal-dashboard` | Web UI at `http://127.0.0.1:9999`. Cross-session breadcrumb view, heartbeat tracker, manager status, parent→child rollup of delegated agent work. |
+| **dashboard.exe** | `universal-dashboard` | Beta, coming soon. Planned web UI for cross-session breadcrumbs and manager status. |
 
 The model:
 

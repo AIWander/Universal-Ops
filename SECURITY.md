@@ -2,7 +2,7 @@
 
 ## Reporting a vulnerability
 
-If you find a security issue in Universal-Ops (manager / ops / dashboard), email **josephwander@gmail.com** directly. **Do not** open a public GitHub issue.
+If you find a security issue in Universal-Ops (manager / ops / dashboard), email **contact@aiwander.ai** directly. **Do not** open a public GitHub issue.
 
 We aim to:
 - Acknowledge within 72 hours
