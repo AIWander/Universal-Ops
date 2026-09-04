@@ -183,7 +183,7 @@ Implementation iterates here in the open. PRs welcome — see [CONTRIBUTING.md](
 
 Universal-Ops is the **next-generation** manager+ops+dashboard bundle. The existing [`AIWander/ops`](https://github.com/AIWander/ops) repo (single-binary ops server, no manager/dashboard) keeps working — Universal-Ops registers under different MCP keys (`universal-manager` / `universal-ops` / `universal-dashboard`) so both stacks can run side-by-side.
 
-Same applies to [`AIWander/manager-universal`](https://github.com/AIWander/manager-universal) — Universal-Ops's `manager.exe` registers as `universal-manager`, not `manager`, so the existing manager-universal install is untouched.
+Same applies to [Manager Universal](manager-universal.html) (Beta — coming soon; see the [capability preview](manager-universal.html)) — Universal-Ops's `manager.exe` registers as `universal-manager`, not `manager`, so the existing manager-universal install is untouched.
 
 ## Uninstall
 

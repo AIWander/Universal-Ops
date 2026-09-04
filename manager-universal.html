@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manager Universal | Multi-backend AI delegation for MCP</title>
+<meta name="description" content="Manager Universal is a Rust MCP server that delegates coding and reasoning tasks to Claude Code, Codex, Gemini CLI, or the GPT API through one tool surface. Beta — coming soon.">
+<meta property="og:title" content="Manager Universal | Multi-backend AI delegation for MCP">
+<meta property="og:description" content="One MCP server replaces three coding-agent integrations. 48 tools, four backends, unified task lifecycle and a live dashboard. Beta — coming soon.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://aiwander.github.io/Universal-Ops/manager-universal.html">
+<link rel="canonical" href="https://aiwander.github.io/Universal-Ops/manager-universal.html">
+<style>
+:root {
+  color-scheme: dark;
+  --bg: #0f1117;
+  --panel: #171a23;
+  --panel-2: #1f2430;
+  --text: #edf1f7;
+  --muted: #a7afbf;
+  --faint: #737b8c;
+  --line: #2b3140;
+  --accent: #22c55e;
+  --accent-2: #5ea1ff;
+  --warn: #f59e0b;
+  --shadow: 0 24px 80px rgba(0, 0, 0, .32);
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(34, 197, 94, .14), transparent 30%),
+    radial-gradient(circle at 82% 0%, rgba(94, 161, 255, .16), transparent 34%),
+    var(--bg);
+  color: var(--text);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+}
+a { color: inherit; }
+code, .mono {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+.wrap { max-width: 1060px; margin: 0 auto; padding: 0 22px; }
+
+/* ---------- header ---------- */
+header { padding: 56px 0 8px; }
+.eyebrow {
+  display: inline-flex; align-items: center; gap: 9px;
+  font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--faint); text-decoration: none;
+}
+.eyebrow:hover { color: var(--muted); }
+.badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  margin: 22px 0 18px; padding: 7px 14px;
+  border: 1px solid rgba(245, 158, 11, .38);
+  background: rgba(245, 158, 11, .1);
+  color: var(--warn);
+  border-radius: 999px;
+  font-size: 12.5px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+}
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--warn); }
+h1 { font-size: clamp(34px, 5.2vw, 54px); line-height: 1.1; margin: 0 0 18px; letter-spacing: -.02em; }
+.lede { font-size: clamp(17px, 2vw, 20px); color: var(--muted); max-width: 66ch; margin: 0 0 6px; }
+.lede strong { color: var(--text); font-weight: 600; }
+
+/* ---------- panels ---------- */
+section { padding: 46px 0; border-top: 1px solid var(--line); margin-top: 46px; }
+section:first-of-type { border-top: 0; margin-top: 0; }
+h2 { font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--faint); margin: 0 0 22px; font-weight: 600; }
+h3 { font-size: 18px; margin: 0 0 8px; letter-spacing: -.01em; }
+p { margin: 0 0 14px; }
+.note {
+  background: var(--panel); border: 1px solid var(--line);
+  border-left: 3px solid var(--warn);
+  border-radius: 12px; padding: 20px 22px; box-shadow: var(--shadow);
+}
+.note p:last-child { margin-bottom: 0; }
+.note .muted { color: var(--muted); }
+
+/* ---------- highlight sheet ---------- */
+.sheet-head {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 14px;
+  margin-bottom: 24px;
+}
+.count { font-size: 46px; font-weight: 700; color: var(--accent); line-height: 1; letter-spacing: -.03em; }
+.count-label { color: var(--muted); }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(268px, 1fr)); gap: 14px; }
+.card {
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: 12px; padding: 18px 19px;
+}
+.card-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+.card-top h3 { font-size: 15.5px; margin: 0; }
+.pill {
+  flex: none; font-size: 11.5px; font-weight: 700; color: var(--accent);
+  background: rgba(34, 197, 94, .12); border: 1px solid rgba(34, 197, 94, .28);
+  border-radius: 999px; padding: 2px 9px;
+}
+.card p { color: var(--muted); font-size: 14px; margin: 0 0 12px; }
+.tools { display: flex; flex-wrap: wrap; gap: 6px; }
+.tool {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11.5px; color: var(--muted);
+  background: var(--panel-2); border: 1px solid var(--line);
+  border-radius: 6px; padding: 2px 7px; white-space: nowrap;
+}
+.more { font-size: 11.5px; color: var(--faint); align-self: center; }
+
+/* ---------- table ---------- */
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 14.5px; }
+th, td { text-align: left; padding: 13px 16px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 11.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--faint); font-weight: 600; }
+tbody tr:last-child td { border-bottom: 0; }
+td strong { color: var(--text); }
+td { color: var(--muted); }
+
+/* ---------- lists ---------- */
+.zones { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.zones li { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 17px; color: var(--muted); font-size: 14.5px; }
+.zones b { color: var(--text); }
+.flow { color: var(--accent-2); }
+
+/* ---------- footer ---------- */
+footer { border-top: 1px solid var(--line); margin-top: 46px; padding: 30px 0 60px; color: var(--faint); font-size: 14px; }
+footer a { color: var(--muted); }
+footer a:hover { color: var(--text); }
+.links { display: flex; flex-wrap: wrap; gap: 18px; margin-bottom: 14px; }
+@media (max-width: 640px) { header { padding-top: 38px; } section { padding: 34px 0; margin-top: 34px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <a class="eyebrow" href="./">&#8592; Universal-Ops</a>
+    <div class="badge"><span class="dot"></span> Beta &middot; Coming soon</div>
+    <h1>Manager Universal</h1>
+    <p class="lede">A Rust MCP server that delegates coding, reasoning, and toolchain work to <strong>Claude Code</strong>, <strong>OpenAI Codex</strong>, <strong>Google Gemini CLI</strong>, or the <strong>OpenAI GPT API</strong> &mdash; through one tool surface.</p>
+  </header>
+
+  <section>
+    <div class="note">
+      <p><strong>Not publicly available yet.</strong> Manager Universal and its embedded dashboard are testable today, but the polished public product is not ready and the source repository is private.</p>
+      <p class="muted">This page is a capability preview. Nothing here is downloadable yet. Watch <a href="https://github.com/AIWander">the AIWander organization</a> for the public release.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>What it does</h2>
+    <p>One server replaces three separate MCP integrations &mdash; claude-runner, codex, and gemini-mcp &mdash; with a unified task lifecycle, persistent state, and a live dashboard.</p>
+    <p>Manager sits between your orchestration context and disposable coding agents. Your chat session holds the goal-level reasoning; manager handles subprocess spawning, output tailing, stall detection, retry escalation, and crash recovery. Long-running delegations survive client restarts. Failed tasks retry with backend escalation. Parallel fan-out collects results without burning orchestration tokens.</p>
+  </section>
+
+  <section>
+    <h2>Highlight sheet</h2>
+    <div class="sheet-head">
+      <span class="count">48</span>
+      <span class="count-label">tools across ten categories</span>
+    </div>
+    <div class="grid">
+
+      <div class="card">
+        <div class="card-top"><h3>Task lifecycle</h3><span class="pill">12</span></div>
+        <p>Submit, watch, pause, retry, roll back. The full arc of a delegated task.</p>
+        <div class="tools"><span class="tool">task_submit</span><span class="tool">task_status</span><span class="tool">task_output</span><span class="tool">task_poll</span><span class="tool">task_retry</span><span class="tool">task_rollback</span><span class="more">+6</span></div>
+      </div>
+
+      <div class="card">
+        <div class="card-top"><h3>Session management</h3><span class="pill">5</span></div>
+        <p>Persistent interactive sessions with a backend &mdash; talk back and forth, not just fire-and-forget.</p>
+        <div class="tools"><span class="tool">session_start</span><span class="tool">session_send</span><span class="tool">session_list</span><span class="tool">session_destroy</span><span class="tool">send</span></div>
+      </div>
+
+      <div class="card">
+        <div class="card-top"><h3>Parallel &amp; routing</h3><span class="pill">4</span></div>
+        <p>Fan out across backends, auto-route by task shape, decompose work into a dependency graph.</p>
+        <div class="tools"><span class="tool">task_run_parallel</span><span class="tool">task_route</span><span class="tool">task_decompose</span><span class="tool">task_explain</span></div>
+      </div>
+
+      <div class="card">
+        <div class="card-top"><h3>Loaf &mdash; task groups</h3><span class="pill">4</span></div>
+        <p>Named groups with phases and acceptance criteria, rolled up to a single status.</p>
+        <div class="tools"><span class="tool">create_loaf</span><span class="tool">loaf_update</span><span class="tool">loaf_status</span><span class="tool">loaf_close</span></div>
+      </div>
+
+      <div class="card">
+        <div class="card-top"><h3>Templates</h3><span class="pill">3</span></div>
+        <p>Reusable prompt templates with variable slots, saved once and run on demand.</p>
+        <div class="tools"><span class="tool">template_save</span><span class="tool">template_list</span><span class="tool">template_run</span></div>
+      </div>
+
+      <div class="card">
+        <div class="card-top"><h3>Roles</h3><span class="pill">3</span></div>
+        <p>Agent roles &mdash; architect, implementer, tester &mdash; or define your own with constraints.</p>
+        <div class="tools"><span class="tool">role_list</span><span class="tool">role_create</span><span class="tool">role_delete</span></div>
+      </div>
+
+      <div class="card">
+        <div class="card-top"><h3>Extraction &amp; workflow</h3><span class="pill">4</span></div>
+        <p>Chain steps into a workflow, and review what the run learned before it is persisted.</p>
+        <div class="tools"><span class="tool">workflow_run</span><span class="tool">review_extractions</span><span class="tool">extract_workflow</span><span class="tool">dismiss_extraction</span></div>
+      </div>
+
+      <div class="card">
+        <div class="card-top"><h3>Analytics &amp; monitoring</h3><span class="pill">7</span></div>
+        <p>Success rates, durations, and backend comparison over task history &mdash; plus toasts and health.</p>
+        <div class="tools"><span class="tool">status_bar</span><span class="tool">task_watch</span><span class="tool">get_analytics</span><span class="tool">run_analyzer</span><span class="tool">notify</span><span class="more">+2</span></div>
+      </div>
+
+      <div class="card">
+        <div class="card-top"><h3>Dashboard</h3><span class="pill">3</span></div>
+        <p>A live local dashboard served during any active session.</p>
+        <div class="tools"><span class="tool">dashboard_open</span><span class="tool">dashboard_status</span><span class="tool">dashboard_stop</span></div>
+      </div>
+
+      <div class="card">
+        <div class="card-top"><h3>Backend shortcuts</h3><span class="pill">3</span></div>
+        <p>One-shot calls that skip the full task lifecycle when you just want an answer.</p>
+        <div class="tools"><span class="tool">gemini_direct</span><span class="tool">codex_exec</span><span class="tool">codex_review</span></div>
+      </div>
+
+    </div>
+  </section>
+
+  <section>
+    <h2>Backends</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Backend</th><th>Strengths</th><th>Typical use</th><th>Speed</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Claude Code</strong></td><td>Multi-file edits, tool use, deep reasoning, iterative refinement</td><td>Refactors, new features, complex debugging</td><td>30&ndash;120s</td></tr>
+          <tr><td><strong>Codex</strong></td><td>One-shot code generation, fast turnaround, good at scripts</td><td>Single-file tasks, quick fixes, reviews</td><td>5&ndash;20s</td></tr>
+          <tr><td><strong>Gemini CLI</strong></td><td>Large context window, broad knowledge</td><td>Large-context Q&amp;A, doc synthesis, exploration</td><td>15&ndash;60s</td></tr>
+          <tr><td><strong>GPT API</strong></td><td>Structured output, function calling, flexible models</td><td>Analysis, classification, structured extraction</td><td>3&ndash;15s</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin-top:16px;color:var(--muted);font-size:14.5px">On retry, manager escalates: <span class="flow mono">Claude Code &rarr; Codex &rarr; Gemini</span>, and effort <span class="flow mono">low &rarr; medium &rarr; high &rarr; max</span>.</p>
+  </section>
+
+  <section>
+    <h2>Live dashboard</h2>
+    <p>An embedded dashboard runs locally during any active session, with five zones:</p>
+    <ul class="zones">
+      <li><b>Sessions</b> &mdash; active backend sessions with PID, uptime, and last activity</li>
+      <li><b>Active loafs</b> &mdash; task groups in progress with phase completion</li>
+      <li><b>Active operations</b> &mdash; running tasks with live output tails</li>
+      <li><b>Last 5 tools</b> &mdash; recent MCP tool calls with timing</li>
+      <li><b>Retry chains</b> &mdash; chevron-linked retry sequences showing the escalation path</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Auto-pause &amp; safety</h2>
+    <p>A destructive-command heuristic classifies prompts containing operations like <code>git push</code>, <code>docker push</code>, <code>terraform apply</code>, or <code>delete</code> as potentially destructive.</p>
+    <p>Those tasks default to manual stall recovery: if the subprocess dies, the task <strong>pauses instead of auto-retrying</strong>, fires a notification, and waits for you. A paused task is not a failure &mdash; you check why and decide. Retry budgets are explicit, and previous error context is injected into the retry prompt.</p>
+  </section>
+
+  <footer>
+    <div class="links">
+      <a href="./">Universal-Ops</a>
+      <a href="https://github.com/AIWander">AIWander on GitHub</a>
+      <a href="https://aiwander.ai">aiwander.ai</a>
+    </div>
+    <div>Part of CPC &mdash; a multi-agent AI orchestration platform. Manager Universal is in private beta; this page describes planned public capabilities and may change.</div>
+  </footer>
+
+</div>
+</body>
+</html>
